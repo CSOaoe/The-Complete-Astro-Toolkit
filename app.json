@@ -1,8 +1,8 @@
 {
   "expo": {
     "name": "AstroToolkit",
-    "slug": "astrotoolkit",
-    "version": "1.0.0",
+    "slug": "the-complete-astro-toolkit",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "astrotoolkit",
@@ -11,13 +11,19 @@
       "icon": "./assets/expo.icon"
     },
     "android": {
+      "package": "com.csoaoe.astrotoolkit",
+      "versionCode": 2,
       "adaptiveIcon": {
         "backgroundColor": "#050812",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ]
     },
     "web": {
       "output": "static",
@@ -32,6 +38,14 @@
         }
       ],
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow AstroToolkit to select your astrophotography image layers.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "backgroundColor": "#050812",
@@ -43,6 +57,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "4a5a1829-ff55-406e-844d-5a542bd86334"
+      }
+    },
+    "owner": "stuartthealiens-team"
   }
 }
