@@ -52,6 +52,24 @@ export function altitudeAt(
   return radiansToDegrees(altitude);
 }
 
+export function horizontalCoordinates(
+  raDegrees: number,
+  decDegrees: number,
+  observer: Pick<ObserverLocation, "latitude" | "longitude">,
+  date: Date,
+) {
+  const julianDate = date.getTime() / DAY_MS + 2440587.5;
+  const sidereal = normaliseDegrees(280.46061837 + 360.98564736629 * (julianDate - 2451545) + observer.longitude);
+  let hourAngle = normaliseDegrees(sidereal - raDegrees);
+  if (hourAngle > 180) hourAngle -= 360;
+  const h = degreesToRadians(hourAngle);
+  const lat = degreesToRadians(observer.latitude);
+  const dec = degreesToRadians(decDegrees);
+  const altitude = Math.asin(Math.sin(lat) * Math.sin(dec) + Math.cos(lat) * Math.cos(dec) * Math.cos(h));
+  const azimuth = Math.atan2(-Math.sin(h) * Math.cos(dec), Math.sin(dec) * Math.cos(lat) - Math.cos(dec) * Math.sin(lat) * Math.cos(h));
+  return { altitudeDegrees: radiansToDegrees(altitude), azimuthDegrees: normaliseDegrees(radiansToDegrees(azimuth)) };
+}
+
 function nightStart(reference: Date): Date {
   const start = new Date(reference);
   if (reference.getHours() < 12) start.setDate(start.getDate() - 1);

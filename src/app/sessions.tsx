@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import {
   Card,
   EmptyState,
@@ -8,7 +8,7 @@ import {
   uiStyles,
 } from "@/components/ui";
 import { useAppData } from "@/context/AppDataContext";
-import { colors, spacing } from "@/theme";
+import { createThemedStyles, spacing } from "@/theme";
 
 export default function SessionsScreen() {
   const router = useRouter();
@@ -60,7 +60,7 @@ export default function SessionsScreen() {
     </Screen>
   );
 }
-const styles = StyleSheet.create({
+const styles = createThemedStyles((colors) => ({
   back: { color: colors.blue, fontWeight: "700" },
   stats: { flexDirection: "row", gap: spacing.sm },
   value: {
@@ -70,4 +70,4 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   date: { color: colors.gold, fontSize: 11, fontWeight: "800" },
-});
+}));

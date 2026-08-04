@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "expo-router";
-import { Pressable, StyleSheet, Text } from "react-native";
+import { Pressable, Text } from "react-native";
 import type { Session } from "@supabase/supabase-js";
 import {
   Button,
@@ -12,7 +12,7 @@ import {
 } from "@/components/ui";
 import { useAppData, CloudSnapshot } from "@/context/AppDataContext";
 import { cloudConfigured, supabase } from "@/services/supabase";
-import { colors, spacing } from "@/theme";
+import { createThemedStyles, spacing } from "@/theme";
 
 export default function CloudSyncScreen() {
   const router = useRouter();
@@ -56,6 +56,8 @@ export default function CloudSyncScreen() {
       favourites: data.favourites,
       observer: data.observer,
       sessions: data.sessions,
+      horizon: data.horizon,
+      calibrationFrames: data.calibrationFrames,
     };
     const { error } = await supabase
       .from("astrotoolkit_backups")
@@ -174,7 +176,7 @@ export default function CloudSyncScreen() {
     </Screen>
   );
 }
-const styles = StyleSheet.create({
+const styles = createThemedStyles((colors) => ({
   back: { color: colors.blue, fontWeight: "700" },
   notice: { borderColor: colors.gold },
   code: {
@@ -185,4 +187,4 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   message: { color: colors.gold, lineHeight: 20 },
-});
+}));

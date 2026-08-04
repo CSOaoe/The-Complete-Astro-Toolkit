@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "expo-router";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import {
   Button,
   Card,
@@ -12,7 +12,7 @@ import {
 } from "@/components/ui";
 import { useAppData } from "@/context/AppDataContext";
 import { fetchAstroWeather, WeatherHour } from "@/services/weather";
-import { colors, radius, spacing } from "@/theme";
+import { colors, createThemedStyles, radius, spacing } from "@/theme";
 
 export default function WeatherScreen() {
   const router = useRouter();
@@ -163,7 +163,7 @@ function Metric({ label, value }: { label: string; value: string }) {
     </View>
   );
 }
-const styles = StyleSheet.create({
+const styles = createThemedStyles((colors) => ({
   back: { color: colors.blue, fontWeight: "700" },
   refresh: { color: colors.gold, fontWeight: "700" },
   best: { borderColor: colors.gold },
@@ -186,4 +186,4 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: "800",
   },
-});
+}));

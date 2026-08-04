@@ -77,6 +77,33 @@ export interface ObserverLocation {
   updatedAt: string;
 }
 
+export interface HorizonPoint {
+  azimuthDegrees: number;
+  elevationDegrees: number;
+}
+
+export interface HorizonProfile {
+  enabled: boolean;
+  label: string;
+  points: HorizonPoint[];
+  updatedAt: string;
+}
+
+export type CalibrationFrameType = "Dark" | "Flat" | "Bias" | "Dark flat";
+export interface CalibrationFrameSet {
+  id: string;
+  type: CalibrationFrameType;
+  camera: string;
+  gain: number;
+  exposureSeconds: number;
+  temperatureCelsius: number | null;
+  binning: number;
+  filter: string;
+  frameCount: number;
+  createdAt: string;
+  notes: string;
+}
+
 export interface CatalogueObject {
   id: string;
   name: string;

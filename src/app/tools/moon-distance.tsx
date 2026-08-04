@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "expo-router";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { Card, Input, Screen, SectionHeader, uiStyles } from "@/components/ui";
 import { searchCatalogue } from "@/data/catalogue";
 import { useAppData } from "@/context/AppDataContext";
 import { moonDistance } from "@/utils/planning";
-import { colors, radius, spacing } from "@/theme";
+import { createThemedStyles, radius, spacing } from "@/theme";
 
 export default function MoonDistanceScreen() {
   const router = useRouter();
@@ -85,7 +85,7 @@ export default function MoonDistanceScreen() {
     </Screen>
   );
 }
-const styles = StyleSheet.create({
+const styles = createThemedStyles((colors) => ({
   back: { color: colors.blue, fontWeight: "700" },
   results: { gap: spacing.xs },
   result: {
@@ -104,4 +104,4 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
   value: { color: colors.gold, fontSize: 48, fontWeight: "800" },
-});
+}));

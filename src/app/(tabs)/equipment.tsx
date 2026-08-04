@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Href, useRouter } from "expo-router";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, Text, View } from "react-native";
 import {
   Button,
   Card,
@@ -21,7 +21,7 @@ import {
   ImagingRig,
   Telescope,
 } from "@/types";
-import { colors, radius, spacing } from "@/theme";
+import { colors, createThemedStyles, radius, spacing } from "@/theme";
 
 type Kind = "telescopes" | "cameras" | "filters" | "rigs";
 type Draft = {
@@ -547,7 +547,7 @@ function upsert<T extends { id: string }>(items: T[], item: T): T[] {
     ? items.map((current) => (current.id === item.id ? item : current))
     : [item, ...items];
 }
-const styles = StyleSheet.create({
+const styles = createThemedStyles((colors) => ({
   section: { gap: spacing.md },
   add: { color: colors.gold, fontWeight: "700", fontSize: 15 },
   label: { color: colors.text, fontSize: 14, fontWeight: "600" },
@@ -574,4 +574,4 @@ const styles = StyleSheet.create({
   },
   typeIconText: { color: colors.gold, fontSize: 20 },
   actions: { flexDirection: "row", gap: spacing.sm },
-});
+}));

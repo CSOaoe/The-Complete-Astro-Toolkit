@@ -5,7 +5,6 @@ import {
   Pressable,
   ScrollView,
   StyleProp,
-  StyleSheet,
   Text,
   TextInput,
   TextInputProps,
@@ -13,7 +12,7 @@ import {
   ViewStyle,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { colors, radius, spacing } from "@/theme";
+import { colors, createThemedStyles, radius, spacing } from "@/theme";
 import { ProjectStatus } from "@/types";
 
 export function Screen({
@@ -209,7 +208,7 @@ export function ErrorBanner({ message }: { message: string }) {
   );
 }
 
-export const uiStyles = StyleSheet.create({
+export const uiStyles = createThemedStyles((colors) => ({
   title: {
     color: colors.text,
     fontSize: 28,
@@ -228,9 +227,9 @@ export const uiStyles = StyleSheet.create({
     paddingVertical: 9,
   },
   chipActive: { backgroundColor: colors.gold, borderColor: colors.gold },
-});
+}));
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((colors) => ({
   safe: { flex: 1, backgroundColor: colors.background },
   screen: { padding: spacing.lg, paddingBottom: 120, gap: spacing.lg },
   card: {
@@ -333,4 +332,4 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-});
+}));

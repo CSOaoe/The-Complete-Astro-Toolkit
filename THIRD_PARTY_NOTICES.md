@@ -22,11 +22,27 @@ Astronomical seeing and transparency forecasts use the [7Timer Astro API](https:
 
 ## Astronomy Engine
 
-Moon ephemeris calculations use [Astronomy Engine](https://github.com/cosinekitty/astronomy), distributed under the MIT licence.
+Moon, planetary and local eclipse calculations use [Astronomy Engine](https://github.com/cosinekitty/astronomy), distributed under the MIT licence.
+
+## NOAA Space Weather Prediction Center
+
+The Aurora & Space Weather dashboard retrieves OVATION aurora-grid probabilities, planetary Kp, solar-wind plasma and interplanetary magnetic-field measurements from the [NOAA Space Weather Prediction Center](https://www.spaceweather.gov/products). These products are situational forecasts and do not guarantee naked-eye or photographic visibility at a specific site.
+
+## PHD2
+
+The guide-log analyser reads user-selected log files produced by [PHD2 Guiding](https://openphdguiding.org/). It is an independent local analysis feature and is not affiliated with the PHD2 project. Diagnostic conclusions should be confirmed with PHD2 Calibration Review and Guiding Assistant.
 
 ## Astrometry.net
 
 The optional Plate Solving screen uploads a user-selected image to the [Nova Astrometry.net API](https://astrometry.net/doc/net/api.html). The app requests that uploads are private, not modifiable and not available for commercial reuse. Users supply their own API key, which is retained only in the active screen's memory.
+
+## CelesTrak and satellite.js
+
+The Satellite Trail Avoidance planner retrieves current visual-satellite general perturbations data in TLE format from [CelesTrak](https://celestrak.org/NORAD/documentation/gp-data-formats.php). Positions are propagated locally with [satellite.js](https://github.com/shashwatak/satellite-js), distributed under the MIT licence. Predictions are planning estimates: recently launched or manoeuvring spacecraft, unlisted satellites and stale cached elements can differ from the displayed path.
+
+## jpeg-js
+
+The local Image Quality tool decodes its resized JPEG preview with [jpeg-js](https://github.com/eugeneware/jpeg-js), distributed under the BSD 3-Clause licence. Selected images and calculated measurements stay on the device and are not uploaded by this tool.
 
 ## Monthly guide references
 

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useRouter } from "expo-router";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import {
   Button,
   Card,
@@ -11,7 +11,7 @@ import {
 } from "@/components/ui";
 import { exposurePlan, exposureRecommendation } from "@/utils/planning";
 import { formatDuration } from "@/utils/calculations";
-import { colors, spacing } from "@/theme";
+import { createThemedStyles, spacing } from "@/theme";
 
 export default function ExposureScreen() {
   const router = useRouter();
@@ -107,7 +107,7 @@ function Result({ label, value }: { label: string; value: string }) {
     </Card>
   );
 }
-const styles = StyleSheet.create({
+const styles = createThemedStyles((colors) => ({
   back: { color: colors.blue, fontWeight: "700" },
   grid: { gap: spacing.sm },
   label: {
@@ -118,4 +118,4 @@ const styles = StyleSheet.create({
   },
   value: { color: colors.gold, fontSize: 30, fontWeight: "800" },
   error: { color: colors.danger },
-});
+}));

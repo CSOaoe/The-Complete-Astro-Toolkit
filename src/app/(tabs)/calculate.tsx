@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Href, useRouter } from "expo-router";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import {
   Button,
   Card,
@@ -11,7 +11,7 @@ import {
   uiStyles,
 } from "@/components/ui";
 import { fieldOfView, pixelScale } from "@/utils/calculations";
-import { colors, radius, spacing } from "@/theme";
+import { createThemedStyles, radius, spacing } from "@/theme";
 
 type Field =
   | "focalLength"
@@ -63,6 +63,31 @@ const toolRoutes: {
     subtitle: "Identify an astro image's exact sky centre",
     icon: "⌖",
     href: "/tools/plate-solve" as Href,
+  },
+  {
+    title: "Satellite trails",
+    subtitle: "Find safer capture windows for your frame",
+    icon: "⌁",
+    href: "/tools/satellite-trails" as Href,
+  },
+  {
+    title: "Image quality",
+    subtitle: "Check focus, star shape and background locally",
+    icon: "◎",
+    href: "/tools/image-quality" as Href,
+  },
+  { title: "FITS / XISF inspector", subtitle: "Read raw subframe metadata and FITS pixels locally", icon: "▦", href: "/tools/file-inspector" as Href },
+  { title: "PHD2 log analyser", subtitle: "Explain guiding RMS, drift and excursions", icon: "⌁", href: "/tools/phd2-log" as Href },
+  { title: "Calibration library", subtitle: "Track dark, flat, bias and dark-flat sets", icon: "▤", href: "/tools/calibration-library" as Href },
+  { title: "Autofocus assistant", subtitle: "Calculate the focus zone and analyse V-curves", icon: "◎", href: "/tools/autofocus" as Href },
+  { title: "All-night altitude", subtitle: "Animated target visibility from dusk to dawn", icon: "⌁", href: "/tools/altitude-chart" as Href },
+  { title: "Solar, lunar & planets", subtitle: "Ephemerides and lucky-imaging capture guidance", icon: "☉", href: "/tools/solar-system" as Href },
+  { title: "Eclipses & meteors", subtitle: "Local eclipse circumstances and shower planner", icon: "☄", href: "/tools/sky-events" as Href },
+  {
+    title: "Local horizon",
+    subtitle: "Map trees, roofs and other obstructions",
+    icon: "⌂",
+    href: "/horizon" as Href,
   },
   {
     title: "Exposure plan",
@@ -249,7 +274,7 @@ function Result({
     </Card>
   );
 }
-const styles = StyleSheet.create({
+const styles = createThemedStyles((colors) => ({
   tool: { flexDirection: "row", alignItems: "center" },
   toolIcon: { width: 38, color: colors.gold, fontSize: 24 },
   chevron: { color: colors.muted, fontSize: 28 },
@@ -268,4 +293,4 @@ const styles = StyleSheet.create({
     letterSpacing: 1.2,
   },
   resultValue: { color: colors.gold, fontSize: 28, fontWeight: "700" },
-});
+}));

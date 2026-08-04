@@ -1,10 +1,10 @@
 import * as Location from "expo-location";
 import { Href, useRouter } from "expo-router";
 import { useState } from "react";
-import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Platform, Pressable, Text, View } from "react-native";
 import { Button, Card, Input, Screen, uiStyles } from "@/components/ui";
 import { useAppData } from "@/context/AppDataContext";
-import { colors, spacing } from "@/theme";
+import { createThemedStyles, spacing } from "@/theme";
 
 function coordinate(value: number, positive: string, negative: string) {
   return `${Math.abs(value).toFixed(4)}° ${value >= 0 ? positive : negative}`;
@@ -171,7 +171,7 @@ export default function LocationScreen() {
     </Screen>
   );
 }
-const styles = StyleSheet.create({
+const styles = createThemedStyles((colors) => ({
   nav: { alignItems: "flex-end" },
   close: { color: colors.blue, fontSize: 16, fontWeight: "600" },
   eyebrow: {
@@ -198,4 +198,4 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: 1,
   },
-});
+}));

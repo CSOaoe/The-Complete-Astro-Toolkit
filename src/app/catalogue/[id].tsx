@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Image } from "expo-image";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { Card, EmptyState, Screen, uiStyles } from "@/components/ui";
 import { formatDec, formatRa, getCatalogueObject } from "@/data/catalogue";
 import { useAppData } from "@/context/AppDataContext";
-import { colors, radius, spacing } from "@/theme";
+import { colors, createThemedStyles, radius, spacing } from "@/theme";
 import { surveyImageUrl, targetImageFov } from "@/utils/surveyImages";
 
 function filtersFor(type: string) {
@@ -186,7 +186,7 @@ function Datum({ label, value }: { label: string; value: string }) {
     </View>
   );
 }
-const styles = StyleSheet.create({
+const styles = createThemedStyles((colors) => ({
   nav: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -245,4 +245,4 @@ const styles = StyleSheet.create({
   imageCaption: { padding: spacing.md, gap: 3 },
   imageCaptionTitle: { color: colors.text, fontWeight: "700" },
   imageCaptionText: { color: colors.muted, fontSize: 12 },
-});
+}));

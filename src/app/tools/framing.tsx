@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "expo-router";
 import { Image } from "expo-image";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import {
   Card,
   Input,
@@ -12,7 +12,7 @@ import {
 import { getCatalogueObject, searchCatalogue } from "@/data/catalogue";
 import { fieldOfView } from "@/utils/calculations";
 import { surveyImageUrl } from "@/utils/surveyImages";
-import { colors, radius, spacing } from "@/theme";
+import { createThemedStyles, radius, spacing } from "@/theme";
 
 export default function FramingScreen() {
   const router = useRouter();
@@ -177,7 +177,7 @@ export default function FramingScreen() {
     </Screen>
   );
 }
-const styles = StyleSheet.create({
+const styles = createThemedStyles((colors) => ({
   back: { color: colors.blue, fontWeight: "700" },
   matches: { gap: spacing.xs },
   match: {
@@ -226,4 +226,4 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", gap: spacing.sm },
   error: { color: colors.danger },
   surveyCredit: { color: colors.muted, fontSize: 11, lineHeight: 16, textAlign: "center" },
-});
+}));

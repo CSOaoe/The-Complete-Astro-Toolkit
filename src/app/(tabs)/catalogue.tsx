@@ -3,7 +3,6 @@ import { useRouter } from "expo-router";
 import {
   Pressable,
   ScrollView,
-  StyleSheet,
   Text,
   TextInput,
   View,
@@ -22,7 +21,7 @@ import {
   searchCatalogue,
 } from "@/data/catalogue";
 import { useAppData } from "@/context/AppDataContext";
-import { colors, radius, spacing } from "@/theme";
+import { colors, createThemedStyles, radius, spacing } from "@/theme";
 
 const filters = [
   "All",
@@ -134,7 +133,7 @@ export default function CatalogueScreen() {
     </Screen>
   );
 }
-const styles = StyleSheet.create({
+const styles = createThemedStyles((colors) => ({
   countCard: { alignItems: "center", paddingVertical: spacing.md },
   count: { color: colors.gold, fontSize: 38, fontWeight: "800" },
   search: {
@@ -171,4 +170,4 @@ const styles = StyleSheet.create({
   objectMarkText: { color: colors.gold, fontSize: 18 },
   catalogue: { color: colors.gold, fontSize: 11, fontWeight: "700" },
   chevron: { color: colors.muted, fontSize: 28 },
-});
+}));

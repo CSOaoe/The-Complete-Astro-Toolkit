@@ -1,6 +1,6 @@
 import { Tabs } from "expo-router";
 import { Text } from "react-native";
-import { colors } from "@/theme";
+import { useTheme } from "@/theme";
 
 const icons: Record<string, string> = {
   tonight: "☾",
@@ -10,6 +10,7 @@ const icons: Record<string, string> = {
   equipment: "⌾",
 };
 export default function TabLayout() {
+  const { colors } = useTheme();
   return (
     <Tabs
       screenOptions={({ route }) => ({

@@ -1,0 +1,22 @@
+import { useEffect, useMemo, useState } from "react";
+import { Animated, Platform, Pressable, Text, View } from "react-native";
+import { Card, Header, Input, Screen, SectionHeader, uiStyles } from "@/components/ui";
+import { getCatalogueObject, searchCatalogue } from "@/data/catalogue";
+import { useAppData } from "@/context/AppDataContext";
+import { horizontalCoordinates } from "@/utils/astronomy";
+import { createThemedStyles, radius, spacing } from "@/theme";
+
+export default function AltitudeChartScreen() {
+  const { observer, horizon } = useAppData(); const [targetId, setTargetId] = useState("ngc7000"); const [query, setQuery] = useState(""); const [scan] = useState(() => new Animated.Value(0));
+  const target = getCatalogueObject(targetId); const matches = useMemo(() => query.trim() ? searchCatalogue(query, "All", 7) : [], [query]);
+  const points = useMemo(() => { if (!target) return []; const start = new Date(); if (start.getHours() < 12) start.setDate(start.getDate() - 1); start.setHours(18, 0, 0, 0); return Array.from({ length: 25 }, (_, index) => { const at = new Date(start.getTime() + index * 30 * 60_000); return { at, ...horizontalCoordinates(target.raHours * 15, target.decDegrees, observer, at) }; }); }, [observer, target]);
+  useEffect(() => { const animation = Animated.loop(Animated.timing(scan, { toValue: 1, duration: 7000, useNativeDriver: Platform.OS !== "web" })); animation.start(); return () => animation.stop(); }, [scan]);
+  const visible = points.filter((point) => point.altitudeDegrees > 0); const peak = visible.reduce((best, point) => point.altitudeDegrees > (best?.altitudeDegrees ?? -90) ? point : best, visible[0]);
+  return <Screen><Header eyebrow="All-night visibility" title="Altitude Chart" /><Input label="Find a target" value={query} onChangeText={setQuery} placeholder="M31, NGC 7000 or a comet" />
+    {matches.map((item) => <Pressable key={item.id} style={styles.match} onPress={() => { setTargetId(item.id); setQuery(""); }}><Text style={uiStyles.h3}>{item.name}</Text><Text style={uiStyles.muted}>{item.catalogue} · {item.constellation}</Text></Pressable>)}
+    <Card><Text style={styles.target}>{target?.name}</Text><Text style={uiStyles.muted}>{observer.label}</Text><View style={styles.chart}>{points.map((point, index) => <View key={point.at.toISOString()} style={styles.column}><View style={[styles.bar, point.altitudeDegrees <= 0 && styles.below, { height: `${Math.max(2, Math.min(100, (Math.max(0, point.altitudeDegrees) / 90) * 100))}%` }]} />{index % 4 === 0 ? <Text style={styles.time}>{point.at.toLocaleTimeString([], { hour: "2-digit" })}</Text> : null}</View>)}<Animated.View style={[styles.scan, { pointerEvents: "none", transform: [{ translateX: scan.interpolate({ inputRange: [0, 1], outputRange: [0, 300] }) }] }]} /></View></Card>
+    <View style={styles.metrics}><Card style={styles.metric}><Text style={styles.label}>PEAK</Text><Text style={styles.value}>{peak ? `${Math.round(peak.altitudeDegrees)}°` : "Below horizon"}</Text></Card><Card style={styles.metric}><Text style={styles.label}>BEST TIME</Text><Text style={styles.value}>{peak?.at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) ?? "—"}</Text></Card></View>
+    <SectionHeader title="How to read it" subtitle={horizon.enabled ? "Your saved local horizon is active in Smart Best Tonight; this chart shows the mathematical altitude curve." : "Bars below the horizon are dimmed. Add a local horizon for obstruction-aware target rankings."} />
+  </Screen>;
+}
+const styles = createThemedStyles((colors) => ({ match: { padding: 12, borderRadius: radius.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border }, target: { color: colors.gold, fontSize: 24, fontWeight: "800" }, chart: { height: 230, flexDirection: "row", alignItems: "flex-end", overflow: "hidden", backgroundColor: colors.input, borderRadius: radius.md, paddingTop: 12 }, column: { flex: 1, height: "100%", justifyContent: "flex-end", alignItems: "center" }, bar: { width: "70%", minHeight: 2, backgroundColor: colors.gold, borderTopLeftRadius: 4, borderTopRightRadius: 4 }, below: { opacity: 0.15 }, time: { color: colors.muted, fontSize: 7, height: 14 }, scan: { position: "absolute", left: 0, top: 0, bottom: 14, width: 2, backgroundColor: colors.blue }, metrics: { flexDirection: "row", gap: spacing.sm }, metric: { flex: 1 }, label: { color: colors.muted, fontSize: 9, fontWeight: "800" }, value: { color: colors.text, fontSize: 18, fontWeight: "800" } }));

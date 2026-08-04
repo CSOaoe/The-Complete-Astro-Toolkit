@@ -2,7 +2,7 @@
 
 AstroToolkit is a cross-platform React Native app for planning astrophotography sessions, browsing 53,900+ deep-sky and comet targets, calculating framing and exposure, checking Moon distance and weather, following PixInsight workflows, tracking sessions and organising equipment. Smart Best Tonight combines sky position, lunar distance, forecast quality and rig fit into target rankings and a block-by-block night plan. It runs with Expo on Android and iPhone, keeps catalogue data offline, and supports optional Supabase cloud sync.
 
-The Tonight screen can use foreground device location or manually entered observing-site coordinates. Target altitude and the best imaging window are calculated from each target's right ascension and declination, the observer's latitude/longitude, and local date/time. Location is never tracked in the background or sent to a backend.
+The Tonight screen can use foreground device location or manually entered observing-site coordinates. Target altitude and the best imaging window are calculated from each target's right ascension and declination, the observer's latitude/longitude, local date/time and an optional user-drawn horizon profile. Location is never tracked in the background or sent to a backend.
 
 ## Requirements
 
@@ -67,7 +67,9 @@ src/
 
 Expo Router provides file-based navigation with one root stack and a five-tab navigator. Screens use a small design system built from reusable `Screen`, `Card`, `Button`, `Input`, `EmptyState`, `SectionHeader` and `StatusBadge` components.
 
-`AppDataProvider` owns journal projects, equipment, imaging rigs, favourites, observing location and session history. It hydrates data from AsyncStorage at startup, exposes typed mutation functions and persists every change locally. Optional Supabase sync stores one user-owned JSON backup protected by Row Level Security.
+`AppDataProvider` owns journal projects, equipment, imaging rigs, favourites, observing location, local horizon, calibration-frame inventory and session history. It hydrates data from AsyncStorage at startup, exposes typed mutation functions and persists every change locally. Optional Supabase sync stores one user-owned JSON backup protected by Row Level Security.
+
+The app-wide theme provider supports Light, Dark and Astro Red palettes. Astro Red remaps custom screen colours as well as shared components so bright blue-white interface elements do not compromise the selected night-use palette.
 
 Calculation functions are pure and kept outside the UI. This makes the field-of-view, pixel-scale, integration-time, target-altitude and Moon-phase formulas independently testable with Vitest. Forms validate required and numeric fields before updating state.
 
@@ -91,6 +93,18 @@ Calculation functions are pure and kept outside the UI. This makes the field-of-
 - Decision-based PixInsight workflow assistant
 - Persistent favourite-target view
 - Smart Best Tonight rankings and an automatic two-hour-block imaging schedule
+- A persistent local-horizon map that removes targets hidden by trees, roofs or terrain from Smart Best Tonight
+- Satellite Trail Avoidance using current visual-satellite orbital elements, target coordinates and the active rig's field of view
+- On-device image-quality screening for focus, star eccentricity, clipping and raised backgrounds
+- Local FITS pixel/header inspection and XISF metadata inspection
+- PHD2 guide-log analysis with pixel-scale-aware RA, Dec and total RMS
+- Persistent dark, flat, bias and dark-flat inventory
+- Critical focus-zone and autofocus V-curve analysis
+- Animated all-night altitude charts for catalogue targets and comets
+- Solar, lunar and planetary lucky-imaging ephemerides and capture advice
+- Location-aware solar/lunar eclipse circumstances and major meteor-shower planning
+- NOAA OVATION aurora probability, planetary Kp, solar-wind speed and IMF Bz dashboard
+- Light, Dark and low-light Astro Red themes
 - Visual mosaic planning with overlap, rotation and shareable panel coordinates
 - Private-upload plate solving through a user-supplied Astrometry.net API key
 - A first-person August 2026 monthly sky guide with real survey target imagery
@@ -116,4 +130,4 @@ Without these variables the Cloud Sync screen explains setup and every other fea
 
 ## Data attribution
 
-The generated 50,000-object deep-sky catalogue is adapted from the HYG DSO database and is licensed CC BY-SA 2.5. Comet orbital data comes from NASA/JPL SBDB. Online target and framing images are coordinate-based DSS2 survey cutouts served by CDS Aladin; an archival survey field may not contain a moving comet. Weather is provided by Open-Meteo (CC BY 4.0), with 7Timer astronomical forecast data where available. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+The generated 50,000-object deep-sky catalogue is adapted from the HYG DSO database and is licensed CC BY-SA 2.5. Comet orbital data comes from NASA/JPL SBDB. Online target and framing images are coordinate-based DSS2 survey cutouts served by CDS Aladin; an archival survey field may not contain a moving comet. Satellite predictions use CelesTrak GP data and satellite.js. Weather is provided by Open-Meteo (CC BY 4.0), with 7Timer astronomical forecast data where available. Aurora and space-weather measurements come from NOAA SWPC. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

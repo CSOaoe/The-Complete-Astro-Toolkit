@@ -13,7 +13,10 @@ import {
   ImagingSession,
   JournalProject,
   ObserverLocation,
+  HorizonProfile,
+  CalibrationFrameSet,
 } from "@/types";
+import { flatHorizon } from "@/utils/horizon";
 
 const KEYS = {
   projects: "@astrotoolkit/projects",
@@ -21,6 +24,8 @@ const KEYS = {
   favourites: "@astrotoolkit/favourites",
   observer: "@astrotoolkit/observer",
   sessions: "@astrotoolkit/sessions",
+  horizon: "@astrotoolkit/horizon",
+  calibration: "@astrotoolkit/calibration",
 };
 const defaultObserver: ObserverLocation = {
   latitude: 51.4769,
@@ -36,6 +41,8 @@ interface AppDataValue {
   favourites: string[];
   observer: ObserverLocation;
   sessions: ImagingSession[];
+  horizon: HorizonProfile;
+  calibrationFrames: CalibrationFrameSet[];
   loading: boolean;
   error: string | null;
   saveProject(project: JournalProject): Promise<void>;
@@ -45,6 +52,9 @@ interface AppDataValue {
   saveObserver(observer: ObserverLocation): Promise<void>;
   saveSession(session: ImagingSession): Promise<void>;
   deleteSession(id: string): Promise<void>;
+  saveHorizon(profile: HorizonProfile): Promise<void>;
+  saveCalibrationFrameSet(set: CalibrationFrameSet): Promise<void>;
+  deleteCalibrationFrameSet(id: string): Promise<void>;
   restoreSnapshot(snapshot: CloudSnapshot): Promise<void>;
 }
 
@@ -54,6 +64,8 @@ export interface CloudSnapshot {
   favourites: string[];
   observer: ObserverLocation;
   sessions: ImagingSession[];
+  horizon?: HorizonProfile;
+  calibrationFrames?: CalibrationFrameSet[];
 }
 
 const AppDataContext = createContext<AppDataValue | null>(null);
@@ -64,6 +76,8 @@ export function AppDataProvider({ children }: PropsWithChildren) {
   const [favourites, setFavourites] = useState<string[]>([]);
   const [observer, setObserver] = useState<ObserverLocation>(defaultObserver);
   const [sessions, setSessions] = useState<ImagingSession[]>([]);
+  const [horizon, setHorizon] = useState<HorizonProfile>(flatHorizon);
+  const [calibrationFrames, setCalibrationFrames] = useState<CalibrationFrameSet[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -74,6 +88,8 @@ export function AppDataProvider({ children }: PropsWithChildren) {
       AsyncStorage.getItem(KEYS.favourites),
       AsyncStorage.getItem(KEYS.observer),
       AsyncStorage.getItem(KEYS.sessions),
+      AsyncStorage.getItem(KEYS.horizon),
+      AsyncStorage.getItem(KEYS.calibration),
     ])
       .then(
         ([
@@ -81,7 +97,7 @@ export function AppDataProvider({ children }: PropsWithChildren) {
           storedEquipment,
           storedFavourites,
           storedObserver,
-          storedSessions,
+          storedSessions, storedHorizon, storedCalibration,
         ]) => {
           if (storedProjects)
             setProjects(JSON.parse(storedProjects) as JournalProject[]);
@@ -93,6 +109,8 @@ export function AppDataProvider({ children }: PropsWithChildren) {
             setObserver(JSON.parse(storedObserver) as ObserverLocation);
           if (storedSessions)
             setSessions(JSON.parse(storedSessions) as ImagingSession[]);
+          if (storedHorizon) setHorizon(JSON.parse(storedHorizon) as HorizonProfile);
+          if (storedCalibration) setCalibrationFrames(JSON.parse(storedCalibration) as CalibrationFrameSet[]);
         },
       )
       .catch(() =>
@@ -173,6 +191,12 @@ export function AppDataProvider({ children }: PropsWithChildren) {
       ),
     [persist, sessions],
   );
+  const saveHorizon = useCallback(async (profile: HorizonProfile) => persist(KEYS.horizon, profile, setHorizon), [persist]);
+  const saveCalibrationFrameSet = useCallback(async (set: CalibrationFrameSet) => {
+    const next = calibrationFrames.some((item) => item.id === set.id) ? calibrationFrames.map((item) => item.id === set.id ? set : item) : [set, ...calibrationFrames];
+    await persist(KEYS.calibration, next, setCalibrationFrames);
+  }, [calibrationFrames, persist]);
+  const deleteCalibrationFrameSet = useCallback(async (id: string) => persist(KEYS.calibration, calibrationFrames.filter((item) => item.id !== id), setCalibrationFrames), [calibrationFrames, persist]);
   const restoreSnapshot = useCallback(
     async (snapshot: CloudSnapshot) => {
       await Promise.all([
@@ -181,6 +205,8 @@ export function AppDataProvider({ children }: PropsWithChildren) {
         persist(KEYS.favourites, snapshot.favourites, setFavourites),
         persist(KEYS.observer, snapshot.observer, setObserver),
         persist(KEYS.sessions, snapshot.sessions, setSessions),
+        snapshot.horizon ? persist(KEYS.horizon, snapshot.horizon, setHorizon) : Promise.resolve(),
+        snapshot.calibrationFrames ? persist(KEYS.calibration, snapshot.calibrationFrames, setCalibrationFrames) : Promise.resolve(),
       ]);
     },
     [persist],
@@ -194,6 +220,8 @@ export function AppDataProvider({ children }: PropsWithChildren) {
         favourites,
         observer,
         sessions,
+        horizon,
+        calibrationFrames,
         loading,
         error,
         saveProject,
@@ -203,6 +231,9 @@ export function AppDataProvider({ children }: PropsWithChildren) {
         saveObserver,
         saveSession,
         deleteSession,
+        saveHorizon,
+        saveCalibrationFrameSet,
+        deleteCalibrationFrameSet,
         restoreSnapshot,
       }}
     >

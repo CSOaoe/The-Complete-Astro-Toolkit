@@ -1,9 +1,9 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "expo-router";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { Card, Screen, SectionHeader, uiStyles } from "@/components/ui";
 import { PixInsightAnswers, pixInsightWorkflow } from "@/utils/planning";
-import { colors, radius, spacing } from "@/theme";
+import { createThemedStyles, radius, spacing } from "@/theme";
 
 export default function PixInsightScreen() {
   const router = useRouter();
@@ -142,7 +142,7 @@ function Toggle({
     </Pressable>
   );
 }
-const styles = StyleSheet.create({
+const styles = createThemedStyles((colors) => ({
   back: { color: colors.blue, fontWeight: "700" },
   label: { color: colors.text, fontWeight: "600" },
   choices: { flexDirection: "row", gap: spacing.sm },
@@ -189,4 +189,4 @@ const styles = StyleSheet.create({
   },
   numberText: { color: colors.gold, fontWeight: "800" },
   note: { color: colors.muted, fontSize: 11, textAlign: "center" },
-});
+}));

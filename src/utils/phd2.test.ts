@@ -1,0 +1,3 @@
+import { describe, expect, it } from "vitest";
+import { analysePhd2Log } from "./phd2";
+describe("PHD2 analysis", () => { it("calculates axis and total RMS", () => { const log = ['PHD2 version 2.6','Frame,Time,mount,dx,dy,RARawDistance,DECRawDistance,RADuration,RADirection,DECDuration,DECDirection,StarMass,SNR,ErrorCode','1,0.0,"Mount",0,0,0.5,0.3,0,,0,,1000,20,0','2,1.0,"Mount",0,0,-0.5,-0.3,0,,0,,1000,20,0','3,2.0,"Mount",0,0,0.2,-0.2,0,,0,,1000,20,0'].join('\n'); const result = analysePhd2Log(log); expect(result.samples).toBe(3); expect(result.totalRms).toBeGreaterThan(0); expect(result.lostFrames).toBe(0); }); });

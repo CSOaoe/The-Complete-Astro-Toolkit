@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useRouter } from "expo-router";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, Text, View } from "react-native";
 import {
   Button,
   Card,
@@ -13,7 +13,7 @@ import {
 } from "@/components/ui";
 import { useAppData } from "@/context/AppDataContext";
 import { ImagingSession, ProjectStatus, SessionStatus } from "@/types";
-import { colors, radius, spacing } from "@/theme";
+import { createThemedStyles, radius, spacing } from "@/theme";
 
 const initial = {
   targetName: "",
@@ -190,11 +190,11 @@ export default function PlannerScreen() {
     </Screen>
   );
 }
-const styles = StyleSheet.create({
+const styles = createThemedStyles((colors) => ({
   back: { color: colors.blue, fontWeight: "700" },
   add: { color: colors.gold, fontWeight: "700" },
   row: { flexDirection: "row", gap: spacing.sm },
   head: { flexDirection: "row", gap: spacing.sm },
   error: { color: colors.danger },
   chip: { borderRadius: radius.pill },
-});
+}));

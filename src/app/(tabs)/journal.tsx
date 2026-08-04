@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Href, useRouter } from "expo-router";
-import { Alert, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, Text, View } from "react-native";
 import {
   Button,
   Card,
@@ -17,7 +17,7 @@ import {
 import { useAppData } from "@/context/AppDataContext";
 import { JournalProject, ProjectStatus } from "@/types";
 import { formatDuration, totalIntegrationSeconds } from "@/utils/calculations";
-import { colors, radius, spacing } from "@/theme";
+import { colors, createThemedStyles, radius, spacing } from "@/theme";
 
 type Draft = Omit<
   JournalProject,
@@ -340,7 +340,7 @@ export default function JournalScreen() {
     </Screen>
   );
 }
-const styles = StyleSheet.create({
+const styles = createThemedStyles((colors) => ({
   add: { color: colors.gold, fontWeight: "700", fontSize: 15 },
   two: { flexDirection: "row", gap: spacing.sm },
   label: { color: colors.text, fontSize: 14, fontWeight: "600" },
@@ -393,4 +393,4 @@ const styles = StyleSheet.create({
   },
   dataValue: { color: colors.text, marginTop: 4, fontWeight: "600" },
   actions: { flexDirection: "row", gap: spacing.sm },
-});
+}));

@@ -9,12 +9,11 @@ import {
   Image,
   Platform,
   Pressable,
-  StyleSheet,
   Text,
   View,
 } from "react-native";
 import { Button, Card, Screen, SectionHeader, uiStyles } from "@/components/ui";
-import { colors, radius, spacing } from "@/theme";
+import { createThemedStyles, radius, spacing } from "@/theme";
 
 type Layer = ImagePicker.ImagePickerAsset | null;
 type FramePreset = {
@@ -413,7 +412,7 @@ function Control({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = createThemedStyles((colors) => ({
   back: { color: colors.gold, fontSize: 15, fontWeight: "700" },
   hero: {
     height: 340,
@@ -623,4 +622,4 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     letterSpacing: 1.4,
   },
-});
+}));
