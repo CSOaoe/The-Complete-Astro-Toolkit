@@ -2,7 +2,7 @@
   "expo": {
     "name": "AstroToolkit",
     "slug": "the-complete-astro-toolkit",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "astrotoolkit",
@@ -12,7 +12,7 @@
     },
     "android": {
       "package": "com.csoaoe.astrotoolkit",
-      "versionCode": 2,
+      "versionCode": 3,
       "adaptiveIcon": {
         "backgroundColor": "#050812",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -52,7 +52,8 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
-      ]
+      ],
+      "expo-image"
     ],
     "experiments": {
       "typedRoutes": true,

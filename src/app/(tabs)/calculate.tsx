@@ -53,6 +53,18 @@ const toolRoutes: {
     href: "/tools/moon-distance" as Href,
   },
   {
+    title: "Mosaic planner",
+    subtitle: "Build an overlap-safe panel grid",
+    icon: "▦",
+    href: "/tools/mosaic" as Href,
+  },
+  {
+    title: "Plate solving",
+    subtitle: "Identify an astro image's exact sky centre",
+    icon: "⌖",
+    href: "/tools/plate-solve" as Href,
+  },
+  {
     title: "Exposure plan",
     subtitle: "Calculate optimal sub length",
     icon: "◷",
