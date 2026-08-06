@@ -16,7 +16,11 @@ import {
   uiStyles,
 } from "@/components/ui";
 import {
+  CatalogueFamily,
+  catalogueFamilies,
   catalogueCount,
+  catalogueObjectMatchesFamily,
+  catalogueObjectMatchesQuery,
   getCatalogueObject,
   searchCatalogue,
 } from "@/data/catalogue";
@@ -37,14 +41,16 @@ export default function CatalogueScreen() {
   const { favourites } = useAppData();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<(typeof filters)[number]>("All");
+  const [catalogueFamily, setCatalogueFamily] = useState<CatalogueFamily>("All");
   const results = useMemo(() => {
-    if (filter !== "Favourites") return searchCatalogue(query, filter);
-    const needle = query.trim().toLowerCase();
+    if (filter !== "Favourites")
+      return searchCatalogue(query, filter, 100, catalogueFamily);
     return favourites
       .map((id) => getCatalogueObject(id))
       .filter((item) => item !== undefined)
-      .filter((item) => `${item.name} ${item.catalogue}`.toLowerCase().includes(needle));
-  }, [favourites, filter, query]);
+      .filter((item) => catalogueObjectMatchesQuery(item, query))
+      .filter((item) => catalogueObjectMatchesFamily(item, catalogueFamily));
+  }, [catalogueFamily, favourites, filter, query]);
   return (
     <Screen>
       <Header eyebrow="Deep sky + Solar System" title="Catalogue" />
@@ -64,6 +70,38 @@ export default function CatalogueScreen() {
           style={styles.searchInput}
         />
       </View>
+      <View style={styles.catalogueBrowseHeader}>
+        <Text style={styles.catalogueBrowseTitle}>Browse by catalogue</Text>
+        <Text style={styles.catalogueBrowseHint}>Swipe to see every collection</Text>
+      </View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.catalogueFilters}
+      >
+        {catalogueFamilies.map((item) => (
+          <Pressable
+            key={item.id}
+            onPress={() => {
+              setCatalogueFamily(item.id);
+              if (item.id === "Comets") setFilter("All");
+            }}
+            style={[
+              styles.catalogueChip,
+              catalogueFamily === item.id && styles.catalogueChipActive,
+            ]}
+          >
+            <Text
+              style={[
+                styles.catalogueChipText,
+                catalogueFamily === item.id && styles.catalogueChipTextActive,
+              ]}
+            >
+              {item.label}
+            </Text>
+          </Pressable>
+        ))}
+      </ScrollView>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -72,7 +110,10 @@ export default function CatalogueScreen() {
         {filters.map((item) => (
           <Pressable
             key={item}
-            onPress={() => setFilter(item)}
+            onPress={() => {
+              setFilter(item);
+              if (item === "Comets") setCatalogueFamily("Comets");
+            }}
             style={[styles.chip, filter === item && styles.chipActive]}
           >
             <Text
@@ -147,6 +188,26 @@ const styles = createThemedStyles((colors) => ({
   },
   searchIcon: { color: colors.gold, fontSize: 24 },
   searchInput: { flex: 1, color: colors.text, fontSize: 16, padding: 14 },
+  catalogueBrowseHeader: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "space-between",
+    gap: spacing.sm,
+  },
+  catalogueBrowseTitle: { color: colors.text, fontSize: 14, fontWeight: "800" },
+  catalogueBrowseHint: { color: colors.muted, fontSize: 10 },
+  catalogueFilters: { gap: spacing.xs, paddingRight: spacing.md },
+  catalogueChip: {
+    borderWidth: 1,
+    borderColor: colors.gold + "66",
+    backgroundColor: colors.surface,
+    borderRadius: radius.pill,
+    paddingHorizontal: 13,
+    paddingVertical: 8,
+  },
+  catalogueChipActive: { backgroundColor: colors.input, borderColor: colors.gold },
+  catalogueChipText: { color: colors.muted, fontSize: 12, fontWeight: "700" },
+  catalogueChipTextActive: { color: colors.gold },
   filters: { gap: spacing.sm },
   chip: {
     borderWidth: 1,

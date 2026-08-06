@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SystemUI from "expo-system-ui";
-import React, { createContext, PropsWithChildren, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, PropsWithChildren, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { ImageStyle, StyleSheet, TextStyle, ViewStyle } from "react-native";
 
 export type ThemeMode = "light" | "dark" | "red";
@@ -51,8 +51,8 @@ export function ThemeProvider({ children }: PropsWithChildren) {
   const [mode, setModeState] = useState<ThemeMode>("dark");
   useEffect(() => { AsyncStorage.getItem(KEY).then((stored) => { if (stored === "light" || stored === "dark" || stored === "red") { activate(stored); setModeState(stored); } }); }, []);
   useEffect(() => { activate(mode); void SystemUI.setBackgroundColorAsync(palettes[mode].background); }, [mode]);
-  const setMode = async (next: ThemeMode) => { activate(next); setModeState(next); await AsyncStorage.setItem(KEY, next); };
-  const value = useMemo(() => ({ mode, setMode, colors: palettes[mode] }), [mode]);
+  const setMode = useCallback(async (next: ThemeMode) => { activate(next); setModeState(next); await AsyncStorage.setItem(KEY, next); }, []);
+  const value = useMemo(() => ({ mode, setMode, colors: palettes[mode] }), [mode, setMode]);
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 

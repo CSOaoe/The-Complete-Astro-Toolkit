@@ -34,6 +34,89 @@ interface CompactComet {
 }
 const rows = generated as CompactObject[];
 const cometRows = generatedComets as CompactComet[];
+
+export const catalogueFamilies = [
+  { id: "All", label: "All catalogues" },
+  { id: "Messier", label: "Messier" },
+  { id: "Caldwell", label: "Caldwell" },
+  { id: "NGC", label: "NGC" },
+  { id: "IC", label: "IC" },
+  { id: "Sharpless", label: "Sharpless" },
+  { id: "RCW", label: "RCW" },
+  { id: "PGC", label: "PGC" },
+  { id: "UGC", label: "UGC" },
+  { id: "ESO", label: "ESO" },
+  { id: "PK", label: "PK" },
+  { id: "Collinder", label: "Collinder" },
+  { id: "Comets", label: "Comets" },
+] as const;
+
+export type CatalogueFamily = (typeof catalogueFamilies)[number]["id"];
+
+export function normalizeCatalogueQuery(value: string) {
+  const compact = value
+    .normalize("NFKD")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+  return compact
+    .replace(/^messier(?:catalogue)?(?:number)?/, "m")
+    .replace(/^caldwell(?:catalogue)?(?:number)?/, "c")
+    .replace(/^sharpless(?:catalogue)?(?:number)?/, "sh2")
+    .replace(/^sharpless2/, "sh2")
+    .replace(/^collinder(?:catalogue)?(?:number)?/, "col");
+}
+
+const crossCatalogueDesignations: Record<string, string[]> = {
+  ic59: ["Sh2-185", "Sharpless 185"],
+  ic63: ["Sh2-185", "Sharpless 185"],
+};
+
+function designationsFor(catalogue: string) {
+  return [
+    catalogue,
+    ...(crossCatalogueDesignations[normalizeCatalogueQuery(catalogue)] ?? []),
+  ];
+}
+
+function queryMatches(query: string, values: string[]) {
+  const plainNeedle = query.trim().toLowerCase().replace(/\s+/g, " ");
+  if (!plainNeedle) return true;
+  const designationNeedle = normalizeCatalogueQuery(query);
+  return values.some((value) => {
+    const plainValue = value.toLowerCase().replace(/\s+/g, " ");
+    return (
+      plainValue.includes(plainNeedle) ||
+      normalizeCatalogueQuery(value).includes(designationNeedle)
+    );
+  });
+}
+
+function familyMatches(
+  family: CatalogueFamily,
+  designations: string[],
+  objectKind: CatalogueObject["objectKind"],
+) {
+  if (family === "All") return true;
+  if (family === "Comets") return objectKind === "comet";
+  if (objectKind === "comet") return false;
+  const prefixes: Record<Exclude<CatalogueFamily, "All" | "Comets">, string[]> = {
+    Messier: ["m"],
+    Caldwell: ["c"],
+    NGC: ["ngc"],
+    IC: ["ic"],
+    Sharpless: ["sh2"],
+    RCW: ["rcw"],
+    PGC: ["pgc"],
+    UGC: ["ugc"],
+    ESO: ["eso"],
+    PK: ["pk"],
+    Collinder: ["col"],
+  };
+  return designations.some((designation) => {
+    const normalized = normalizeCatalogueQuery(designation);
+    return prefixes[family].some((prefix) => normalized.startsWith(prefix));
+  });
+}
 const curatedCatalogues = new Set(
   targets.flatMap((target) =>
     target.identifiers.map((id) => id.replace(/\s/g, "").toLowerCase()),
@@ -155,17 +238,16 @@ export function searchCatalogue(
   query: string,
   category = "All",
   limit = 100,
+  family: CatalogueFamily = "All",
 ): CatalogueObject[] {
-  const needle = query.trim().toLowerCase();
   const results: CatalogueObject[] = [];
-  if (category !== "Comets") {
+  if (category !== "Comets" && family !== "Comets") {
     for (const target of targets) {
       const item = fromCurated(target);
-      const haystack =
-        `${item.name} ${target.identifiers.join(" ")} ${item.constellation}`.toLowerCase();
       if (
         categoryMatches(item.type, category) &&
-        (!needle || haystack.includes(needle))
+        familyMatches(family, target.identifiers, item.objectKind) &&
+        queryMatches(query, [item.name, ...target.identifiers, item.constellation, item.type])
       )
         results.push(item);
     }
@@ -173,22 +255,48 @@ export function searchCatalogue(
       if (results.length >= limit) break;
       if (
         curatedCatalogues.has(row.c.replace(/\s/g, "").toLowerCase()) ||
-        !categoryMatches(row.t, category)
+        !categoryMatches(row.t, category) ||
+        !familyMatches(family, designationsFor(row.c), "deep-sky")
       )
         continue;
-      const haystack = `${row.c} ${row.n} ${row.k} ${row.t}`.toLowerCase();
-      if (!needle || haystack.includes(needle)) results.push(fromRow(row));
+      if (queryMatches(query, [...designationsFor(row.c), row.n, row.k, row.t]))
+        results.push(fromRow(row));
     }
   }
-  if ((category === "All" || category === "Comets") && results.length < limit) {
+  if (
+    (category === "All" || category === "Comets") &&
+    (family === "All" || family === "Comets") &&
+    results.length < limit
+  ) {
     const date = new Date();
     for (const row of cometRows) {
       if (results.length >= limit) break;
-      const haystack = `${row.d} ${row.n} ${row.c} comet`.toLowerCase();
-      if (!needle || haystack.includes(needle)) results.push(fromComet(row, date));
+      if (queryMatches(query, [row.d, row.n, row.c, "comet"]))
+        results.push(fromComet(row, date));
     }
   }
   return results.slice(0, limit);
+}
+
+export function catalogueObjectMatchesQuery(item: CatalogueObject, query: string) {
+  return queryMatches(query, [
+    item.name,
+    item.catalogue,
+    item.constellation,
+    item.type,
+    ...(item.curated?.identifiers ?? []),
+  ]);
+}
+
+export function catalogueObjectMatchesFamily(
+  item: CatalogueObject,
+  family: CatalogueFamily,
+) {
+  return familyMatches(
+    family,
+    [item.catalogue, ...(item.curated?.identifiers ?? [])],
+    item.objectKind,
+  );
 }
 
 export function getCatalogueObject(id: string): CatalogueObject | undefined {

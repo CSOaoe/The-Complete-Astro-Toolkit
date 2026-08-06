@@ -1,11 +1,13 @@
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { AppDataProvider } from "@/context/AppDataContext";
+import { FieldModeProvider, FieldModeQuickControl } from "@/context/FieldModeContext";
 import { ThemeProvider, useTheme } from "@/theme";
+import { View } from "react-native";
 
 export default function RootLayout() {
   return (
-    <ThemeProvider><AppDataProvider><ThemedStack /></AppDataProvider></ThemeProvider>
+    <ThemeProvider><FieldModeProvider><AppDataProvider><View style={{ flex: 1 }}><ThemedStack /><FieldModeQuickControl /></View></AppDataProvider></FieldModeProvider></ThemeProvider>
   );
 }
 

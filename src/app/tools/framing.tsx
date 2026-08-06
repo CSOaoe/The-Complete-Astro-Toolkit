@@ -1,20 +1,20 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "expo-router";
 import { Image } from "expo-image";
-import { Animated, PanResponder, Pressable, Text, View } from "react-native";
+import { Animated, PanResponder, Pressable, Text, useWindowDimensions, View } from "react-native";
 import { Card, Input, Screen, SectionHeader, uiStyles } from "@/components/ui";
 import { useAppData } from "@/context/AppDataContext";
 import { formatDec, formatRa, getCatalogueObject, searchCatalogue } from "@/data/catalogue";
 import { fieldOfView, pixelScale } from "@/utils/calculations";
+import { clampPanOffset, coordinateForPan, PanOffset, SkyCoordinate } from "@/utils/framingPan";
 import { surveyImageUrl } from "@/utils/surveyImages";
 import { createThemedStyles, radius, spacing } from "@/theme";
 
-const FRAME_WIDTH = 310;
-const wrapRa = (hours: number) => ((hours % 24) + 24) % 24;
-const clampDec = (degrees: number) => Math.max(-89.9, Math.min(89.9, degrees));
+const SURVEY_OVERSCAN = 2.2;
 
 export default function FramingScreen() {
   const router = useRouter();
+  const { width: viewportWidth } = useWindowDimensions();
   const { equipment } = useAppData();
   const [targetId, setTargetId] = useState("m31");
   const [query, setQuery] = useState("");
@@ -36,9 +36,10 @@ export default function FramingScreen() {
   const resolutionHeight = resolutionHeightOverride ?? String(savedCamera?.resolutionHeight ?? 4176);
   const [rotation, setRotation] = useState("0");
   const target = useMemo(() => getCatalogueObject(targetId), [targetId]);
-  const [center, setCenter] = useState({ ra: target?.raHours ?? 0, dec: target?.decDegrees ?? 0 });
-  const [liveCenter, setLiveCenter] = useState(center);
+  const [imageOrigin, setImageOrigin] = useState<SkyCoordinate>({ ra: target?.raHours ?? 0, dec: target?.decDegrees ?? 0 });
+  const [liveCenter, setLiveCenter] = useState(imageOrigin);
   const [drag] = useState(() => new Animated.ValueXY());
+  const [panOffset, setPanOffset] = useState<PanOffset>({ x: 0, y: 0 });
   const matches = useMemo(() => (query.trim() ? searchCatalogue(query, "All", 8) : []), [query]);
   const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
 
@@ -53,41 +54,52 @@ export default function FramingScreen() {
       return null;
     }
   }, [focal, height, pixel, width]);
-  const frameHeight = result ? Math.max(150, Math.min(310, (FRAME_WIDTH * result.v) / result.h)) : 210;
+  const frameWidth = Math.max(260, Math.min(620, viewportWidth - 70));
+  const frameHeight = result ? Math.max(150, Math.min(460, (frameWidth * result.v) / result.h)) : 210;
   const rotationDegrees = Number(rotation) || 0;
-  const coordinateForDrag = (dx: number, dy: number) => {
-    if (!result) return center;
-    const cosDec = Math.max(0.12, Math.cos((center.dec * Math.PI) / 180));
-    return {
-      ra: wrapRa(center.ra - ((dx / FRAME_WIDTH) * result.h) / (15 * cosDec)),
-      dec: clampDec(center.dec + (dy / frameHeight) * result.v),
-    };
-  };
+  const coordinateAtOffset = (offset: PanOffset) => result
+    ? coordinateForPan(imageOrigin, offset, result.h, result.v, frameWidth, frameHeight)
+    : imageOrigin;
+  const offsetForGesture = (dx: number, dy: number) => clampPanOffset({
+    x: panOffset.x + dx,
+    y: panOffset.y + dy,
+  }, frameWidth, frameHeight, SURVEY_OVERSCAN);
   const panResponder = PanResponder.create({
     onStartShouldSetPanResponder: () => Boolean(result),
     onMoveShouldSetPanResponder: (_, gesture) => Boolean(result && Math.abs(gesture.dx) + Math.abs(gesture.dy) > 3),
-    onPanResponderGrant: () => drag.setOffset({ x: 0, y: 0 }),
     onPanResponderMove: (_, gesture) => {
-      drag.setValue({ x: gesture.dx, y: gesture.dy });
-      setLiveCenter(coordinateForDrag(gesture.dx, gesture.dy));
+      const next = offsetForGesture(gesture.dx, gesture.dy);
+      drag.setValue(next);
+      setLiveCenter(coordinateAtOffset(next));
     },
     onPanResponderRelease: (_, gesture) => {
-      const next = coordinateForDrag(gesture.dx, gesture.dy);
-      setCenter(next);
-      setLiveCenter(next);
-      drag.setValue({ x: 0, y: 0 });
+      const next = offsetForGesture(gesture.dx, gesture.dy);
+      setPanOffset(next);
+      drag.setValue(next);
+      setLiveCenter(coordinateAtOffset(next));
     },
-    onPanResponderTerminate: () => {
-      setLiveCenter(center);
-      drag.setValue({ x: 0, y: 0 });
+    onPanResponderTerminate: (_, gesture) => {
+      const next = offsetForGesture(gesture.dx, gesture.dy);
+      setPanOffset(next);
+      drag.setValue(next);
+      setLiveCenter(coordinateAtOffset(next));
     },
   });
+
+  const selectTarget = (id: string, next: SkyCoordinate) => {
+    setTargetId(id);
+    setImageOrigin(next);
+    setPanOffset({ x: 0, y: 0 });
+    drag.setValue({ x: 0, y: 0 });
+    setLiveCenter(next);
+    setQuery("");
+  };
   const imageUrl = target && result ? surveyImageUrl({
-    raHours: center.ra,
-    decDegrees: center.dec,
-    fovDegrees: Math.max(result.h, result.v) * 1.12,
-    width: 1000,
-    height: Math.max(500, Math.round((1000 * result.v) / result.h)),
+    raHours: imageOrigin.ra,
+    decDegrees: imageOrigin.dec,
+    fovDegrees: Math.max(result.h, result.v) * SURVEY_OVERSCAN,
+    width: 1400,
+    height: Math.max(700, Math.round((1400 * result.v) / result.h)),
     rotationDegrees,
   }) : null;
   const imageFailed = imageUrl !== null && failedImageUrl === imageUrl;
@@ -98,7 +110,7 @@ export default function FramingScreen() {
       <SectionHeader title="Visual framing planner" subtitle="Saved-rig FOV, pixel scale and drag-to-compose sky preview" />
       <Input label="Find any catalogue target or comet" value={query} onChangeText={setQuery} placeholder="Try M31, NGC 7000 or Halley" autoCapitalize="none" />
       {matches.length ? <View style={styles.matches}>{matches.map((item) => (
-        <Pressable key={item.id} onPress={() => { const next = { ra: item.raHours, dec: item.decDegrees }; setTargetId(item.id); setCenter(next); setLiveCenter(next); setQuery(""); }} style={styles.match}>
+        <Pressable key={item.id} onPress={() => selectTarget(item.id, { ra: item.raHours, dec: item.decDegrees })} style={styles.match}>
           <Text style={styles.matchTitle}>{item.name}</Text>
           <Text style={styles.matchMeta}>{item.catalogue} · {item.objectKind === "comet" ? "Comet" : item.type}</Text>
         </Pressable>
@@ -109,13 +121,20 @@ export default function FramingScreen() {
       </View>
       <Card style={styles.preview}>
         <Text style={styles.previewLabel}>{target?.name ?? "Target unavailable"}</Text>
-        <View style={[styles.frame, { width: FRAME_WIDTH, height: frameHeight }]} {...panResponder.panHandlers}>
+        <View style={[styles.frame, { width: frameWidth, height: frameHeight }]} {...panResponder.panHandlers}>
           {imageUrl && !imageFailed ? (
-            <Animated.View style={[styles.movingImage, { transform: drag.getTranslateTransform() }]}>
+            <Animated.View style={[styles.movingImage, {
+              width: frameWidth * SURVEY_OVERSCAN,
+              height: frameHeight * SURVEY_OVERSCAN,
+              left: -(frameWidth * (SURVEY_OVERSCAN - 1)) / 2,
+              top: -(frameHeight * (SURVEY_OVERSCAN - 1)) / 2,
+              transform: drag.getTranslateTransform(),
+            }]}>
               <Image source={imageUrl} style={styles.frameImage} contentFit="cover" transition={180} cachePolicy="memory-disk" accessibilityLabel={`Interactive sky survey framing preview for ${target?.name ?? "target"}`} onError={() => setFailedImageUrl(imageUrl)} />
             </Animated.View>
           ) : <View style={styles.imageFallback}><Text style={styles.imageFallbackIcon}>✦</Text><Text style={styles.imageFallbackText}>{imageFailed ? "Survey image unavailable" : "Enter valid dimensions"}</Text></View>}
           <View pointerEvents="none" style={styles.crossH} /><View pointerEvents="none" style={styles.crossV} /><View pointerEvents="none" style={styles.reticle} />
+          {target?.objectKind === "comet" ? <View pointerEvents="none" style={styles.cometMarker}><Text style={styles.cometMarkerText}>☄</Text></View> : null}
         </View>
         <Text style={styles.dragHint}>Drag the sky smoothly to recentre; RA and Dec update as you move.</Text>
         {result ? <Text style={uiStyles.muted}>{result.h.toFixed(2)}° × {result.v.toFixed(2)}° field · {rotationDegrees.toFixed(0)}° rotation</Text> : <Text style={styles.error}>Enter valid positive optical dimensions.</Text>}
@@ -147,7 +166,7 @@ const styles = createThemedStyles((colors) => ({
   preview: { alignItems: "center", overflow: "hidden" },
   previewLabel: { color: colors.gold, fontWeight: "700" },
   frame: { backgroundColor: "#07101F", borderColor: colors.text, borderWidth: 2, alignItems: "center", justifyContent: "center", overflow: "hidden" },
-  movingImage: { position: "absolute", width: "116%", height: "116%" },
+  movingImage: { position: "absolute" },
   frameImage: { width: "100%", height: "100%" },
   imageFallback: { flex: 1, alignItems: "center", justifyContent: "center" },
   imageFallbackIcon: { color: colors.gold, fontSize: 34 },
@@ -155,6 +174,8 @@ const styles = createThemedStyles((colors) => ({
   crossH: { position: "absolute", width: "100%", height: 1, backgroundColor: "#91A0B855" },
   crossV: { position: "absolute", width: 1, height: "100%", backgroundColor: "#91A0B855" },
   reticle: { position: "absolute", width: 22, height: 22, borderRadius: 11, borderWidth: 1, borderColor: "#F7F8FCAA" },
+  cometMarker: { position: "absolute", width: 38, height: 38, borderRadius: 19, borderWidth: 1, borderColor: colors.gold, alignItems: "center", justifyContent: "center" },
+  cometMarkerText: { color: colors.gold, fontSize: 16 },
   dragHint: { color: colors.blue, fontSize: 11, textAlign: "center" },
   sectionLabel: { color: colors.muted, fontSize: 10, fontWeight: "800", letterSpacing: 1 },
   rigs: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs },

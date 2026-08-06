@@ -11,6 +11,7 @@ import {
 } from "@/components/ui";
 import { targets } from "@/data/targets";
 import { useAppData } from "@/context/AppDataContext";
+import { useFieldMode } from "@/context/FieldModeContext";
 import { moonPhase } from "@/utils/astronomy";
 import { fetchAstroWeather, WeatherHour } from "@/services/weather";
 import { smartNightSchedule, smartTargetsTonight } from "@/utils/smartPlanning";
@@ -24,6 +25,7 @@ export default function TonightScreen() {
   const router = useRouter();
   const { favourites, toggleFavourite, observer, equipment, horizon, error } =
     useAppData();
+  const { active: fieldModeActive, toggle: toggleFieldMode } = useFieldMode();
   const [weather, setWeather] = useState<WeatherHour[]>([]);
   const [weatherStatus, setWeatherStatus] = useState("Loading forecast…");
   const reference = useMemo(() => new Date(), []);
@@ -148,6 +150,13 @@ export default function TonightScreen() {
           </Text>
         </Card>
       </Pressable>
+      <SectionHeader title="Field operations" subtitle="Run the night, prepare offline and protect power" />
+      <View style={styles.operationGrid}>
+        <Operation title="Command Centre" subtitle="Live session" icon="▶" onPress={() => router.push("/session-command" as Href)} />
+        <Operation title="Offline Pack" subtitle="No signal needed" icon="↓" onPress={() => router.push("/offline-pack" as Href)} />
+        <Operation title="Power & Dew" subtitle="Runtime check" icon="⚡" onPress={() => router.push("/power-planner" as Href)} />
+        <Operation title={fieldModeActive ? "Field Mode On" : "Field Mode"} subtitle="Red · dim · awake" icon="◐" active={fieldModeActive} onPress={() => void toggleFieldMode()} />
+      </View>
       <Pressable onPress={() => router.push("/alerts" as Href)}>
         <Card style={styles.horizonCard}>
           <View style={styles.half}>
@@ -321,6 +330,9 @@ function Stat({ label, value }: { label: string; value: string }) {
     </View>
   );
 }
+function Operation({ title, subtitle, icon, onPress, active = false }: { title: string; subtitle: string; icon: string; onPress: () => void; active?: boolean }) {
+  return <Pressable onPress={onPress} style={styles.operationWrap}><Card style={[styles.operation, active && styles.operationActive]}><Text style={styles.operationIcon}>{icon}</Text><Text style={styles.operationTitle}>{title}</Text><Text style={styles.operationSubtitle}>{subtitle}</Text></Card></Pressable>;
+}
 const styles = createThemedStyles((colors) => ({
   date: {
     color: colors.text,
@@ -329,6 +341,13 @@ const styles = createThemedStyles((colors) => ({
     marginBottom: 4,
   },
   two: { flexDirection: "row", gap: spacing.sm },
+  operationGrid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
+  operationWrap: { flexGrow: 1, flexBasis: 145 },
+  operation: { minHeight: 112, alignItems: "center", justifyContent: "center" },
+  operationActive: { borderColor: colors.gold, borderWidth: 2, backgroundColor: colors.input },
+  operationIcon: { color: colors.gold, fontSize: 25 },
+  operationTitle: { color: colors.text, fontWeight: "800", textAlign: "center" },
+  operationSubtitle: { color: colors.muted, fontSize: 11, textAlign: "center" },
   half: { flex: 1 },
   shortcut: { alignItems: "center", minHeight: 92, justifyContent: "center" },
   shortcutIcon: { color: colors.gold, fontSize: 24 },

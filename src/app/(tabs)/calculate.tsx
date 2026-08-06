@@ -4,6 +4,9 @@ import { Card, Header, Screen, SectionHeader, uiStyles } from "@/components/ui";
 import { createThemedStyles } from "@/theme";
 
 const toolRoutes: { title: string; subtitle: string; icon: string; href: Href }[] = [
+  { title: "Session Command Centre", subtitle: "Live progress, altitude, field checklist and reminders", icon: "▶", href: "/session-command" as Href },
+  { title: "Offline Field Pack", subtitle: "Cache plans, forecast and target imagery before leaving", icon: "↓", href: "/offline-pack" as Href },
+  { title: "Power, dew & storage", subtitle: "Battery runtime, condensation risk and image capacity", icon: "⚡", href: "/power-planner" as Href },
   { title: "Offline sky atlas", subtitle: "Pan and zoom the built-in deep-sky map without signal", icon: "✦", href: "/tools/sky-atlas" as Href },
   { title: "Intelligent alerts", subtitle: "Clear sky, aurora, target and equipment-risk rules", icon: "!", href: "/alerts" as Href },
   { title: "Multi-night projects", subtitle: "Allocate unfinished integration across upcoming nights", icon: "▦", href: "/tools/multi-night" as Href },
@@ -26,7 +29,7 @@ const toolRoutes: { title: string; subtitle: string; icon: string; href: Href }[
   { title: "Local horizon", subtitle: "Map trees, roofs and other obstructions", icon: "⌂", href: "/horizon" as Href },
   { title: "Exposure plan", subtitle: "Calculate optimal sub length", icon: "▷", href: "/tools/exposure" as Href },
   { title: "Post Process", subtitle: "Build a software-aware processing workflow", icon: "✦", href: "/tools/pixinsight" as Href },
-];
+].sort((a, b) => a.title.localeCompare(b.title, "en", { sensitivity: "base" }));
 
 export default function ToolsScreen() {
   const router = useRouter();
