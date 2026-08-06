@@ -103,7 +103,7 @@ export default function SatelliteTrailsScreen() {
   return (
     <Screen>
       <Pressable onPress={() => router.back()}>
-        <Text style={styles.back}>‹ Calculate</Text>
+        <Text style={styles.back}>‹ Tools</Text>
       </Pressable>
       <SectionHeader
         title="Satellite trail avoidance"

@@ -1,6 +1,6 @@
 # AstroToolkit
 
-AstroToolkit is a cross-platform React Native app for planning astrophotography sessions, browsing 53,900+ deep-sky and comet targets, calculating framing and exposure, checking Moon distance and weather, following PixInsight workflows, tracking sessions and organising equipment. Smart Best Tonight combines sky position, lunar distance, forecast quality and rig fit into target rankings and a block-by-block night plan. It runs with Expo on Android and iPhone, keeps catalogue data offline, and supports optional Supabase cloud sync.
+AstroToolkit is a cross-platform React Native app for planning astrophotography sessions, browsing 53,900+ deep-sky and comet targets, calculating framing and exposure, checking Moon distance and weather, building software-aware post-processing workflows, tracking sessions and organising equipment. Smart Best Tonight combines sky position, lunar distance, forecast quality and rig fit into target rankings and a block-by-block night plan. It runs with Expo on Android and iPhone, keeps catalogue data offline, and supports optional Supabase cloud sync.
 
 The Tonight screen can use foreground device location or manually entered observing-site coordinates. Target altitude and the best imaging window are calculated from each target's right ascension and declination, the observer's latitude/longitude, local date/time and an optional user-drawn horizon profile. Location is never tracked in the background or sent to a backend.
 
@@ -50,7 +50,7 @@ npm run lint
 ```text
 src/
   app/                  Expo Router routes, tab screens and detail screens
-    (tabs)/             Tonight, Catalogue, Calculate, Journal, Equipment
+    (tabs)/             Tonight, Equipment, Catalogue, Tools, Journal
     catalogue/[id].tsx  Typed target detail route
     astro-flight.tsx    Native Fly Through Your AstroData composer
     location.tsx        Device/manual observing-site setup
@@ -85,12 +85,18 @@ Calculation functions are pure and kept outside the UI. This makes the field-of-
 
 - Astro Flight two-layer composer with animated framing, warp, rotation and camera-drift preview
 - Visual sensor framing over real DSS2 sky-survey imagery, with catalogue-wide target search and camera rotation
+- Offline interactive sky atlas with bright and featured catalogue targets
+- Optical train builder with back-focus and sampling compatibility checks
+- Sky Atlas 2.0 layers, rig/mosaic overlays and phone-pointing mode
+- Intelligent clear-sky, aurora, target and equipment alerts
+- Equipment compatibility database for image circles, threads and filters
+- Persistent multi-night integration projects with automatic night allocation
 - Time-dependent comet coordinates calculated from JPL orbital elements
 - Moon-to-target angular separation using Astronomy Engine ephemerides
 - Physics-based subexposure and total-frame calculator
 - Location-aware 24-hour cloud, humidity, wind, seeing and transparency forecast
 - Date-based imaging planner and completed session history
-- Decision-based PixInsight workflow assistant
+- Decision-based Post Process assistant for PixInsight, Siril, Affinity Photo and Photoshop
 - Persistent favourite-target view
 - Smart Best Tonight rankings and an automatic two-hour-block imaging schedule
 - A persistent local-horizon map that removes targets hidden by trees, roofs or terrain from Smart Best Tonight
@@ -106,7 +112,7 @@ Calculation functions are pure and kept outside the UI. This makes the field-of-
 - NOAA OVATION aurora probability, planetary Kp, solar-wind speed and IMF Bz dashboard
 - Light, Dark and low-light Astro Red themes
 - Visual mosaic planning with overlap, rotation and shareable panel coordinates
-- Private-upload plate solving through a user-supplied Astrometry.net API key
+- Built-in private-upload plate solving with automatic annotated-result display
 - A first-person August 2026 monthly sky guide with real survey target imagery
 
 ## Optional cloud sync

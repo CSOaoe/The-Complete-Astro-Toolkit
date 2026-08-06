@@ -3,7 +3,7 @@ import {
   angularSeparation,
   exposurePlan,
   exposureRecommendation,
-  pixInsightWorkflow,
+  postProcessWorkflow,
 } from "./planning";
 
 describe("moon separation geometry", () => {
@@ -30,10 +30,16 @@ describe("exposure planning", () => {
   });
 });
 
-describe("PixInsight workflow", () => {
-  it("adapts steps to gradients and narrowband data", () => {
-    const steps = pixInsightWorkflow({ data: "Mono", target: "Nebula", narrowband: true, gradients: true, noise: false, stars: false });
+describe("post-processing workflow", () => {
+  it("adapts PixInsight steps to gradients and narrowband data", () => {
+    const steps = postProcessWorkflow({ software: "PixInsight", data: "Mono", target: "Nebula", narrowband: true, gradients: true, noise: false, stars: false });
     expect(steps.some((step) => step.includes("DynamicBackgroundExtraction"))).toBe(true);
-    expect(steps.some((step) => step.includes("Narrowband"))).toBe(true);
+    expect(steps.some((step) => step.toLowerCase().includes("narrowband"))).toBe(true);
+  });
+
+  it("uses software-specific Siril steps", () => {
+    const steps = postProcessWorkflow({ software: "Siril", data: "OSC", target: "Galaxy", narrowband: false, gradients: true, noise: true, stars: true });
+    expect(steps.some((step) => step.includes("Photometric Colour Calibration"))).toBe(true);
+    expect(steps.some((step) => step.includes("StarNet"))).toBe(true);
   });
 });

@@ -75,7 +75,7 @@ export default function ImageQualityScreen() {
         </>
       ) : null}
       <Text style={styles.disclaimer}>
-        This is a quick local triage tool, not a calibrated scientific measurement. Compare frames from the same camera and binning, and use full-resolution tools such as PixInsight SubframeSelector for final rejection decisions.
+        This is a quick local triage tool, not a calibrated scientific measurement. Compare frames from the same camera and binning, and use your processing software’s full-resolution subframe analysis for final rejection decisions.
       </Text>
     </Screen>
   );

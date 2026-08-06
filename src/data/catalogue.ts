@@ -1,8 +1,8 @@
 import generated from "./catalogue.generated.json";
 import generatedComets from "./comets.generated.json";
 import { targets } from "./targets";
-import { CatalogueObject, DeepSkyTarget } from "@/types";
-import { cometEquatorialPosition } from "@/utils/comets";
+import { CatalogueObject, DeepSkyTarget } from "../types";
+import { cometEquatorialPosition } from "../utils/comets";
 
 interface CompactObject {
   i: string;
@@ -140,6 +140,16 @@ function categoryMatches(type: string, category: string) {
 
 export const cometCount = cometRows.length;
 export const catalogueCount = rows.length + targets.length + cometRows.length;
+
+export function skyAtlasObjects(limit = 700): CatalogueObject[] {
+  const curated = targets.map(fromCurated);
+  const bright = rows
+    .filter((row) => row.m !== null && row.m <= 9)
+    .sort((a, b) => (a.m ?? 99) - (b.m ?? 99))
+    .slice(0, Math.max(0, limit - curated.length))
+    .map(fromRow);
+  return [...curated, ...bright];
+}
 
 export function searchCatalogue(
   query: string,

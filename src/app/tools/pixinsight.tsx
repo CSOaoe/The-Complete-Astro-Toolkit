@@ -2,12 +2,13 @@ import { useMemo, useState } from "react";
 import { useRouter } from "expo-router";
 import { Pressable, Text, View } from "react-native";
 import { Card, Screen, SectionHeader, uiStyles } from "@/components/ui";
-import { PixInsightAnswers, pixInsightWorkflow } from "@/utils/planning";
+import { PostProcessAnswers, postProcessWorkflow, ProcessingSoftware } from "@/utils/planning";
 import { createThemedStyles, radius, spacing } from "@/theme";
 
-export default function PixInsightScreen() {
+export default function PostProcessScreen() {
   const router = useRouter();
-  const [answers, setAnswers] = useState<PixInsightAnswers>({
+  const [answers, setAnswers] = useState<PostProcessAnswers>({
+    software: "PixInsight",
     data: "OSC",
     target: "Nebula",
     narrowband: false,
@@ -15,23 +16,31 @@ export default function PixInsightScreen() {
     noise: true,
     stars: true,
   });
-  const steps = useMemo(() => pixInsightWorkflow(answers), [answers]);
+  const steps = useMemo(() => postProcessWorkflow(answers), [answers]);
   return (
     <Screen>
       <Pressable onPress={() => router.back()}>
-        <Text style={styles.back}>‹ Calculate</Text>
+        <Text style={styles.back}>‹ Tools</Text>
       </Pressable>
       <SectionHeader
-        title="PixInsight workflow"
-        subtitle="A decision-based assistant for your dataset"
+        title="Post Process"
+        subtitle="A software-aware workflow assistant for your dataset"
       />
       <Card>
+        <Choice
+          label="Processing software"
+          values={["PixInsight", "Siril", "AffinityPhoto", "Photoshop"]}
+          selected={answers.software}
+          onSelect={(software) =>
+            setAnswers({ ...answers, software: software as ProcessingSoftware })
+          }
+        />
         <Choice
           label="Camera data"
           values={["OSC", "Mono"]}
           selected={answers.data}
           onSelect={(data) =>
-            setAnswers({ ...answers, data: data as PixInsightAnswers["data"] })
+            setAnswers({ ...answers, data: data as PostProcessAnswers["data"] })
           }
         />
         <Choice
@@ -41,7 +50,7 @@ export default function PixInsightScreen() {
           onSelect={(target) =>
             setAnswers({
               ...answers,
-              target: target as PixInsightAnswers["target"],
+              target: target as PostProcessAnswers["target"],
             })
           }
         />
@@ -145,9 +154,10 @@ function Toggle({
 const styles = createThemedStyles((colors) => ({
   back: { color: colors.blue, fontWeight: "700" },
   label: { color: colors.text, fontWeight: "600" },
-  choices: { flexDirection: "row", gap: spacing.sm },
+  choices: { flexDirection: "row", flexWrap: "wrap", gap: spacing.sm },
   choice: {
-    flex: 1,
+    flexGrow: 1,
+    minWidth: "44%",
     padding: 10,
     alignItems: "center",
     borderColor: colors.border,

@@ -150,3 +150,14 @@ export interface ImagingSession {
   rating?: number;
   createdAt: string;
 }
+
+export interface ImagingCampaign {
+  id: string;
+  targetId: string;
+  targetName: string;
+  rigId: string;
+  requiredHours: number;
+  capturedHours: number;
+  nightsToPlan: number;
+  createdAt: string;
+}

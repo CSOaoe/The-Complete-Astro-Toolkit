@@ -67,7 +67,9 @@ export function exposurePlan(subSeconds: number, totalHours: number) {
   return { count, totalSeconds: count * subSeconds };
 }
 
-export type PixInsightAnswers = {
+export type ProcessingSoftware = "PixInsight" | "Siril" | "AffinityPhoto" | "Photoshop";
+export type PostProcessAnswers = {
+  software: ProcessingSoftware;
   data: "OSC" | "Mono";
   target: "Nebula" | "Galaxy" | "Cluster";
   narrowband: boolean;
@@ -75,42 +77,49 @@ export type PixInsightAnswers = {
   noise: boolean;
   stars: boolean;
 };
-export function pixInsightWorkflow(input: PixInsightAnswers) {
-  const steps = [
-    "WeightedBatchPreprocessing — calibrate, register and integrate all subframes",
-    "ImageInspection — reject poor frames and confirm registration",
-  ];
-  if (input.gradients)
-    steps.push(
-      "DynamicBackgroundExtraction — build careful samples away from target structure",
-    );
-  steps.push(
-    input.data === "Mono"
-      ? "ChannelCombination — combine linear L/R/G/B or narrowband masters"
-      : "SpectrophotometricColorCalibration — solve and calibrate OSC colour",
-  );
-  if (input.narrowband)
-    steps.push(
-      "Narrowband combination — map Ha/OIII/SII with PixelMath before stretching",
-    );
-  if (input.noise)
-    steps.push(
-      "BlurXTerminator or Deconvolution, then NoiseXTerminator/MultiscaleLinearTransform while linear",
-    );
-  if (input.stars)
-    steps.push(
-      "StarXTerminator — separate stars for independent stretch and colour control",
-    );
-  steps.push(
-    input.target === "Galaxy"
-      ? "GeneralizedHyperbolicStretch — protect the core and reveal faint arms"
-      : input.target === "Nebula"
-        ? "GeneralizedHyperbolicStretch — reveal faint nebulosity without clipping highlights"
-        : "HistogramTransformation — controlled stretch with star protection",
-  );
-  steps.push(
-    "CurvesTransformation — refine contrast, saturation and colour balance",
-    "Final inspection — check clipping, halos, noise and export in the required colour space",
-  );
-  return steps;
+export function postProcessWorkflow(input: PostProcessAnswers) {
+  const recipes: Record<ProcessingSoftware, string[]> = {
+    PixInsight: [
+      "WeightedBatchPreprocessing — calibrate, register and integrate the subframes",
+      input.gradients ? "DynamicBackgroundExtraction — remove gradients with samples clear of target structure" : "ImageInspection — reject weak frames and verify registration",
+      input.data === "Mono" ? "ChannelCombination — assemble the mono masters" : "SpectrophotometricColorCalibration — solve and calibrate colour",
+      input.narrowband ? "PixelMath — build the narrowband palette while the data is linear" : "Linear colour and background refinement",
+      input.noise ? "Deconvolution and MultiscaleLinearTransform — sharpen and reduce noise while linear" : "Controlled linear detail refinement",
+      input.stars ? "Star separation — process stars and background independently" : "Protect stars through the stretch",
+      "GeneralizedHyperbolicStretch — reveal faint signal while protecting highlights",
+      "CurvesTransformation — finish contrast, saturation and colour balance",
+    ],
+    Siril: [
+      "Conversion and preprocessing — calibrate lights with matching masters",
+      "Registration and stacking — use weighted rejection and inspect the result",
+      input.gradients ? "Background Extraction — correct gradients before stretching" : "Background neutralisation and crop",
+      input.data === "Mono" ? "RGB composition — combine registered mono masters" : "Photometric Colour Calibration — calibrate OSC colour",
+      input.narrowband ? "Pixel Math — mix the narrowband channels into the chosen palette" : "Green noise removal and colour balance",
+      input.noise ? "Linear denoise — reduce chroma and luminance noise conservatively" : "Linear detail check",
+      input.stars ? "StarNet integration — create starless and star layers" : "Protect stars during stretch",
+      "Generalised Hyperbolic Stretch — build contrast in controlled stages",
+      "Final saturation, star recombination and export",
+    ],
+    AffinityPhoto: [
+      "Develop or open the integrated 16/32-bit master and crop stacking edges",
+      input.gradients ? "Remove gradients with live filters and masked background corrections" : "Set black point and neutral background",
+      input.data === "Mono" ? "Load channel masters and assign them to RGB channels" : "Balance OSC colour with white balance and curves",
+      input.narrowband ? "Use channel equations or blend modes to construct the narrowband palette" : "Build colour contrast with selective colour adjustments",
+      input.noise ? "Apply masked denoise before the strongest stretch" : "Inspect faint signal at 100%",
+      input.stars ? "Create a protected star layer for separate colour and size control" : "Mask bright stars before contrast work",
+      "Stretch with Curves and Levels in several small moves",
+      "Finish local contrast, saturation, star control and export",
+    ],
+    Photoshop: [
+      "Open the integrated 16-bit master as a Smart Object and crop stacking edges",
+      input.gradients ? "Use masked adjustment layers to flatten gradients" : "Set a neutral background and black point",
+      input.data === "Mono" ? "Load mono masters into RGB channels and align precisely" : "Correct OSC colour with Camera Raw and Curves",
+      input.narrowband ? "Use Apply Image or channel calculations to build the narrowband palette" : "Refine colour with selective colour and saturation masks",
+      input.noise ? "Reduce noise with a masked Camera Raw or dedicated denoise layer" : "Inspect the linear master for residual noise",
+      input.stars ? "Keep stars on a separate layer for independent colour and size control" : "Use luminosity masks to protect stars",
+      "Stretch gradually with Curves while preserving highlights",
+      "Finish contrast, colour, sharpening and web/print export",
+    ],
+  };
+  return [...recipes[input.software], `Final ${input.target.toLowerCase()} inspection — check clipping, halos, colour and background neutrality`];
 }

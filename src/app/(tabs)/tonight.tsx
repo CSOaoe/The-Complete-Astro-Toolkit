@@ -89,6 +89,17 @@ export default function TonightScreen() {
         </Text>
       </View>
       {error ? <ErrorBanner message={error} /> : null}
+      <Pressable onPress={() => router.push("/monthly-guide" as Href)}>
+        <Card style={styles.guideCard}>
+          <Text style={styles.guideMonth}>AUGUST 2026 MONTHLY GUIDE</Text>
+          <Text style={styles.guideTitle}>The Moon’s triple act</Text>
+          <Text style={uiStyles.muted}>
+            My targets, eclipse dates and Perseid plan — rewritten for
+            AstroToolkit.
+          </Text>
+          <Text style={styles.guideLink}>Open my monthly guide ›</Text>
+        </Card>
+      </Pressable>
       <View style={styles.two}>
         <Pressable
           style={styles.half}
@@ -137,6 +148,16 @@ export default function TonightScreen() {
           </Text>
         </Card>
       </Pressable>
+      <Pressable onPress={() => router.push("/alerts" as Href)}>
+        <Card style={styles.horizonCard}>
+          <View style={styles.half}>
+            <Text style={styles.kicker}>INTELLIGENT ALERT CENTRE</Text>
+            <Text style={uiStyles.h3}>Clear sky, aurora, target and equipment alerts</Text>
+            <Text style={uiStyles.muted}>Live rules for your location, rig and favourite targets.</Text>
+          </View>
+          <Text style={styles.change}>Open ›</Text>
+        </Card>
+      </Pressable>
       <Pressable onPress={() => router.push("/horizon" as Href)}>
         <Card style={styles.horizonCard}>
           <View style={styles.half}>
@@ -182,17 +203,6 @@ export default function TonightScreen() {
           </Text>
         </View>
       </Card>
-      <Pressable onPress={() => router.push("/monthly-guide" as Href)}>
-        <Card style={styles.guideCard}>
-          <Text style={styles.guideMonth}>AUGUST 2026 MONTHLY GUIDE</Text>
-          <Text style={styles.guideTitle}>The Moon’s triple act</Text>
-          <Text style={uiStyles.muted}>
-            My targets, eclipse dates and Perseid plan — rewritten for
-            AstroToolkit.
-          </Text>
-          <Text style={styles.guideLink}>Open my monthly guide ›</Text>
-        </Card>
-      </Pressable>
       <SectionHeader
         title="Smart Best Tonight"
         subtitle={`Altitude + local horizon + Moon + rig fit + weather · ${weatherStatus}`}

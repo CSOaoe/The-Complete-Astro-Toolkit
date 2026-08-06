@@ -1,10 +1,10 @@
 import { Image } from "expo-image";
 import { Href, useRouter } from "expo-router";
-import { Linking, Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { Card, Screen, SectionHeader, uiStyles } from "@/components/ui";
 import { august2026Guide } from "@/data/monthlyGuides";
 import { getCatalogueObject } from "@/data/catalogue";
-import { surveyImageUrl, targetImageFov } from "@/utils/surveyImages";
+import { preferredTargetImage, targetImageFov } from "@/utils/surveyImages";
 import { createThemedStyles, radius, spacing } from "@/theme";
 
 export default function MonthlyGuideScreen() {
@@ -60,7 +60,7 @@ export default function MonthlyGuideScreen() {
       {august2026Guide.targets.map((guideTarget) => {
         const target = getCatalogueObject(guideTarget.id);
         if (!target) return null;
-        const imageUrl = surveyImageUrl({
+        const image = preferredTargetImage(target, {
           raHours: target.raHours,
           decDegrees: target.decDegrees,
           fovDegrees: targetImageFov(target),
@@ -74,10 +74,10 @@ export default function MonthlyGuideScreen() {
           >
             <Card style={styles.target}>
               <Image
-                source={imageUrl}
+                source={image.url}
                 style={styles.targetImage}
                 contentFit="cover"
-                accessibilityLabel={`DSS2 image of ${target.name}`}
+                accessibilityLabel={`${image.sourceLabel} image of ${target.name}`}
               />
               <View style={styles.targetBody}>
                 <Text style={styles.targetCatalogue}>
@@ -101,23 +101,7 @@ export default function MonthlyGuideScreen() {
           later.
         </Text>
       </Card>
-      <Card>
-        <Text style={styles.cardTitle}>About this guide</Text>
-        <Text style={uiStyles.muted}>
-          This is my app-friendly rewrite of the Cosmic Captures August 2026
-          guide, checked against eclipse and meteor-shower references.
-        </Text>
-        <Pressable
-          onPress={() =>
-            void Linking.openURL(
-              "https://www.cosmiccaptures.com/august2026guide",
-            )
-          }
-        >
-          <Text style={styles.link}>Read the original web guide ›</Text>
-        </Pressable>
-      </Card>
-      <Text style={styles.credit}>Sky imagery: CDS Aladin DSS2.</Text>
+      <Text style={styles.credit}>Sky imagery: NASA Hubble and CDS Aladin DSS2.</Text>
     </Screen>
   );
 }

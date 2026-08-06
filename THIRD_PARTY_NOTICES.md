@@ -34,7 +34,7 @@ The guide-log analyser reads user-selected log files produced by [PHD2 Guiding](
 
 ## Astrometry.net
 
-The optional Plate Solving screen uploads a user-selected image to the [Nova Astrometry.net API](https://astrometry.net/doc/net/api.html). The app requests that uploads are private, not modifiable and not available for commercial reuse. Users supply their own API key, which is retained only in the active screen's memory.
+The optional Plate Solving screen uploads a user-selected image to the [Nova Astrometry.net API](https://astrometry.net/doc/net/api.html). The app requests that uploads are private, not modifiable and not available for commercial reuse. Service access is built into the app, so users do not enter or store an API key.
 
 ## CelesTrak and satellite.js
 

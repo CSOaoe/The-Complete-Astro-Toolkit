@@ -70,6 +70,36 @@ export function horizontalCoordinates(
   return { altitudeDegrees: radiansToDegrees(altitude), azimuthDegrees: normaliseDegrees(radiansToDegrees(azimuth)) };
 }
 
+export function equatorialCoordinates(
+  azimuthDegrees: number,
+  altitudeDegrees: number,
+  observer: Pick<ObserverLocation, "latitude" | "longitude">,
+  date: Date,
+) {
+  const azimuth = degreesToRadians(azimuthDegrees);
+  const altitude = degreesToRadians(altitudeDegrees);
+  const latitude = degreesToRadians(observer.latitude);
+  const declination = Math.asin(
+    Math.sin(altitude) * Math.sin(latitude) +
+      Math.cos(altitude) * Math.cos(latitude) * Math.cos(azimuth),
+  );
+  const hourAngle = Math.atan2(
+    -Math.sin(azimuth) * Math.cos(altitude),
+    Math.sin(altitude) * Math.cos(latitude) -
+      Math.cos(altitude) * Math.sin(latitude) * Math.cos(azimuth),
+  );
+  const julianDate = date.getTime() / DAY_MS + 2440587.5;
+  const sidereal = normaliseDegrees(
+    280.46061837 +
+      360.98564736629 * (julianDate - 2451545) +
+      observer.longitude,
+  );
+  return {
+    raHours: normaliseDegrees(sidereal - radiansToDegrees(hourAngle)) / 15,
+    decDegrees: radiansToDegrees(declination),
+  };
+}
+
 function nightStart(reference: Date): Date {
   const start = new Date(reference);
   if (reference.getHours() < 12) start.setDate(start.getDate() - 1);

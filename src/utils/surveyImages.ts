@@ -10,6 +10,27 @@ export function targetImageFov(target: CatalogueObject) {
   return Math.min(5, Math.max(0.12, sizeDegrees * 1.8));
 }
 
+const NASA_M57_IMAGE =
+  "https://science.nasa.gov/wp-content/uploads/2023/04/ring-nebula-full_jpg-jpg.webp";
+
+export function preferredTargetImage(
+  target: CatalogueObject,
+  survey: Parameters<typeof surveyImageUrl>[0],
+) {
+  if (target.id.toLowerCase() === "m57") {
+    return {
+      url: NASA_M57_IMAGE,
+      sourceLabel: "NASA Hubble image",
+      credit: "NASA, ESA and the Hubble Heritage collaboration",
+    };
+  }
+  return {
+    url: surveyImageUrl(survey),
+    sourceLabel: "Real sky survey image",
+    credit: "DSS2 colour survey · centred on catalogue coordinates",
+  };
+}
+
 export function surveyImageUrl({
   raHours,
   decDegrees,

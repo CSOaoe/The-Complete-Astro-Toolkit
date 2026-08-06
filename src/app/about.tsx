@@ -38,7 +38,7 @@ export default function AboutScreen() {
           back up your data across devices when configured.
         </Text>
       </Card>
-      <Text style={styles.version}>Version 1.3.0 · Expo SDK 57</Text>
+      <Text style={styles.version}>Version 1.4.0 · Expo SDK 57</Text>
     </Screen>
   );
 }

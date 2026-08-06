@@ -32,10 +32,10 @@ export default function TabLayout() {
       })}
     >
       <Tabs.Screen name="tonight" options={{ title: "Tonight" }} />
-      <Tabs.Screen name="catalogue" options={{ title: "Catalogue" }} />
-      <Tabs.Screen name="calculate" options={{ title: "Calculate" }} />
-      <Tabs.Screen name="journal" options={{ title: "Journal" }} />
       <Tabs.Screen name="equipment" options={{ title: "Equipment" }} />
+      <Tabs.Screen name="catalogue" options={{ title: "Catalogue" }} />
+      <Tabs.Screen name="calculate" options={{ title: "Tools" }} />
+      <Tabs.Screen name="journal" options={{ title: "Journal" }} />
     </Tabs>
   );
 }

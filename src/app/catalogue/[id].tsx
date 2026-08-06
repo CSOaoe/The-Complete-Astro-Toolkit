@@ -6,7 +6,7 @@ import { Card, EmptyState, Screen, uiStyles } from "@/components/ui";
 import { formatDec, formatRa, getCatalogueObject } from "@/data/catalogue";
 import { useAppData } from "@/context/AppDataContext";
 import { colors, createThemedStyles, radius, spacing } from "@/theme";
-import { surveyImageUrl, targetImageFov } from "@/utils/surveyImages";
+import { preferredTargetImage, targetImageFov } from "@/utils/surveyImages";
 
 function filtersFor(type: string) {
   if (
@@ -40,7 +40,7 @@ export default function TargetDetailScreen() {
     );
   const curated = target.curated;
   const isComet = target.objectKind === "comet";
-  const imageUrl = surveyImageUrl({
+  const image = preferredTargetImage(target, {
     raHours: target.raHours,
     decDegrees: target.decDegrees,
     fovDegrees: targetImageFov(target),
@@ -81,23 +81,23 @@ export default function TargetDetailScreen() {
           </View>
         ) : (
           <Image
-            source={imageUrl}
+            source={image.url}
             style={styles.heroImage}
             contentFit="cover"
             transition={350}
             cachePolicy="memory-disk"
-            accessibilityLabel={`DSS2 sky survey image centred on ${target.name}`}
+            accessibilityLabel={`${image.sourceLabel} image of ${target.name}`}
             onError={() => setImageFailed(true)}
           />
         )}
         <View style={styles.imageCaption}>
           <Text style={styles.imageCaptionTitle}>
-            {isComet ? "Current sky field" : "Real sky survey image"}
+            {isComet ? "Current sky field" : image.sourceLabel}
           </Text>
           <Text style={styles.imageCaptionText}>
             {isComet
               ? "Calculated comet position over archival DSS2 imagery"
-              : "DSS2 colour survey · centred on catalogue coordinates"}
+              : image.credit}
           </Text>
         </View>
       </View>

@@ -121,10 +121,10 @@ export default function AstroFlightScreen() {
     <Screen>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Back to Calculate"
+        accessibilityLabel="Back to Tools"
         onPress={() => router.back()}
       >
-        <Text style={styles.back}>‹ Calculate</Text>
+        <Text style={styles.back}>‹ Tools</Text>
       </Pressable>
 
       <View style={styles.hero}>

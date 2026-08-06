@@ -43,7 +43,7 @@ export default function ExposureScreen() {
   return (
     <Screen>
       <Pressable onPress={() => router.back()}>
-        <Text style={styles.back}>‹ Calculate</Text>
+        <Text style={styles.back}>‹ Tools</Text>
       </Pressable>
       <SectionHeader
         title="Exposure calculator"

@@ -21,7 +21,7 @@ import {
   ImagingRig,
   Telescope,
 } from "@/types";
-import { colors, createThemedStyles, radius, spacing } from "@/theme";
+import { createThemedStyles, radius, spacing } from "@/theme";
 
 type Kind = "telescopes" | "cameras" | "filters" | "rigs";
 type Draft = {
@@ -245,16 +245,6 @@ export default function EquipmentScreen() {
     <Screen>
       <Header eyebrow="Your observatory" title="Equipment" />
       {error ? <ErrorBanner message={error} /> : null}
-      <Pressable onPress={() => router.push("/cloud-sync" as Href)}>
-        <Card style={{ flexDirection: "row", alignItems: "center" }}>
-          <Text style={{ color: colors.gold, fontSize: 24 }}>☁</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={uiStyles.h3}>Cloud sync</Text>
-            <Text style={uiStyles.muted}>Back up equipment and app data</Text>
-          </View>
-          <Text style={{ color: colors.muted, fontSize: 26 }}>›</Text>
-        </Card>
-      </Pressable>
       {draft ? (
         <EquipmentForm
           draft={draft}
@@ -269,6 +259,27 @@ export default function EquipmentScreen() {
         />
       ) : (
         <>
+          <Pressable onPress={() => router.push("/tools/equipment-train" as Href)}>
+            <Card style={styles.trainShortcut}>
+              <View style={styles.trainIcon}>
+                <Text style={styles.trainIconText}>⌁</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={uiStyles.h3}>Optical train builder</Text>
+                <Text style={uiStyles.muted}>
+                  Check back focus and camera sampling using your saved rigs.
+                </Text>
+              </View>
+              <Text style={styles.trainChevron}>›</Text>
+            </Card>
+          </Pressable>
+          <Pressable onPress={() => router.push("/tools/equipment-compatibility" as Href)}>
+            <Card style={styles.trainShortcut}>
+              <View style={styles.trainIcon}><Text style={styles.trainIconText}>◎</Text></View>
+              <View style={{ flex: 1 }}><Text style={uiStyles.h3}>Equipment compatibility</Text><Text style={uiStyles.muted}>Check image circles, threads, filter sizing and reducer geometry.</Text></View>
+              <Text style={styles.trainChevron}>›</Text>
+            </Card>
+          </Pressable>
           {(["telescopes", "cameras", "filters", "rigs"] as Kind[]).map(
             (kind) => (
               <View key={kind} style={styles.section}>
@@ -548,6 +559,10 @@ function upsert<T extends { id: string }>(items: T[], item: T): T[] {
     : [item, ...items];
 }
 const styles = createThemedStyles((colors) => ({
+  trainShortcut: { flexDirection: "row", alignItems: "center", gap: spacing.md },
+  trainIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.input, alignItems: "center", justifyContent: "center" },
+  trainIconText: { color: colors.gold, fontSize: 22 },
+  trainChevron: { color: colors.muted, fontSize: 28 },
   section: { gap: spacing.md },
   add: { color: colors.gold, fontWeight: "700", fontSize: 15 },
   label: { color: colors.text, fontSize: 14, fontWeight: "600" },

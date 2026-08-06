@@ -29,7 +29,7 @@ export default function MoonDistanceScreen() {
   return (
     <Screen>
       <Pressable onPress={() => router.back()}>
-        <Text style={styles.back}>‹ Calculate</Text>
+        <Text style={styles.back}>‹ Tools</Text>
       </Pressable>
       <SectionHeader
         title="Moon distance"

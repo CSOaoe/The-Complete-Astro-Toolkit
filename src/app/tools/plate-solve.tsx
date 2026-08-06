@@ -1,18 +1,11 @@
 import { useState } from "react";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
-import {
-  Linking,
-  Platform,
-  Pressable,
-  Text,
-  View,
-} from "react-native";
+import { Platform, Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import {
   Button,
   Card,
-  Input,
   Screen,
   SectionHeader,
   uiStyles,
@@ -22,7 +15,6 @@ import { createThemedStyles, spacing } from "@/theme";
 
 export default function PlateSolveScreen() {
   const router = useRouter();
-  const [apiKey, setApiKey] = useState("");
   const [asset, setAsset] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
@@ -40,8 +32,8 @@ export default function PlateSolveScreen() {
     }
   };
   const solve = async () => {
-    if (!apiKey.trim() || !asset) {
-      setError("Add your Astrometry.net API key and choose an image first.");
+    if (!asset) {
+      setError("Choose an image first.");
       return;
     }
     setWorking(true);
@@ -53,7 +45,6 @@ export default function PlateSolveScreen() {
       else file = await (await fetch(asset.uri)).blob();
       setResult(
         await solveImage(
-          apiKey,
           file,
           asset.fileName ?? "astro-frame.jpg",
           setStatus,
@@ -72,7 +63,7 @@ export default function PlateSolveScreen() {
   return (
     <Screen>
       <Pressable onPress={() => router.back()}>
-        <Text style={styles.back}>‹ Calculate</Text>
+        <Text style={styles.back}>‹ Tools</Text>
       </Pressable>
       <SectionHeader
         title="Plate solving"
@@ -81,27 +72,11 @@ export default function PlateSolveScreen() {
       <Card style={styles.notice}>
         <Text style={styles.noticeTitle}>Before I upload</Text>
         <Text style={uiStyles.muted}>
-          Your selected image is sent privately to Nova Astrometry.net for
-          solving. It is marked not publicly visible, not modifiable and not for
-          commercial reuse. Your API key stays only in this screen’s memory.
+          Your selected image is sent privately to the plate-solving service.
+          It is marked not publicly visible, not modifiable and not for
+          commercial reuse. No setup or API key is required.
         </Text>
       </Card>
-      <Input
-        label="Astrometry.net API key"
-        value={apiKey}
-        onChangeText={setApiKey}
-        secureTextEntry
-        autoCapitalize="none"
-        autoCorrect={false}
-        placeholder="Paste your free API key"
-      />
-      <Button
-        title="Get a free Astrometry.net API key"
-        variant="secondary"
-        onPress={() =>
-          void Linking.openURL("https://nova.astrometry.net/api_help")
-        }
-      />
       <Button
         title={asset ? "Choose a different image" : "Choose astro image"}
         variant="secondary"
@@ -118,7 +93,7 @@ export default function PlateSolveScreen() {
       ) : null}
       <Button
         title={working ? "Solving…" : "Solve this image"}
-        disabled={working || !asset || !apiKey.trim()}
+        disabled={working || !asset}
         onPress={() => void solve()}
       />
       {status ? (
@@ -131,7 +106,7 @@ export default function PlateSolveScreen() {
         <>
           <SectionHeader
             title="Solved frame"
-            subtitle={`Astrometry.net job ${result.jobId}`}
+            subtitle={`Solved frame ${result.jobId}`}
           />
           <Card>
             <Result
@@ -164,16 +139,11 @@ export default function PlateSolveScreen() {
             style={styles.annotated}
             contentFit="contain"
           />
-          <Button
-            title="Open annotated result"
-            variant="secondary"
-            onPress={() => void Linking.openURL(result.annotatedImageUrl)}
-          />
         </>
       ) : null}
       <Text style={styles.credit}>
-        Plate solving is provided by Astrometry.net. Upload only images you are
-        permitted to share with that service.
+        Upload only images you are permitted to share with the external
+        plate-solving service.
       </Text>
     </Screen>
   );

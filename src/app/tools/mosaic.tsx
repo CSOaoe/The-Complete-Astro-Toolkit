@@ -20,19 +20,28 @@ import { fieldOfView } from "@/utils/calculations";
 import { mosaicDimensions, mosaicPanels } from "@/utils/mosaic";
 import { surveyImageUrl } from "@/utils/surveyImages";
 import { colors, createThemedStyles, radius, spacing } from "@/theme";
+import { useAppData } from "@/context/AppDataContext";
 
 export default function MosaicScreen() {
   const router = useRouter();
+  const { equipment } = useAppData();
+  const rig = equipment.rigs[0];
+  const savedScope = equipment.telescopes.find((item) => item.id === rig?.telescopeId) ?? equipment.telescopes[0];
+  const savedCamera = equipment.cameras.find((item) => item.id === rig?.cameraId) ?? equipment.cameras[0];
   const [targetId, setTargetId] = useState("ic1805");
   const [query, setQuery] = useState("");
-  const [focal, setFocal] = useState("480");
-  const [sensorWidth, setSensorWidth] = useState("23.5");
-  const [sensorHeight, setSensorHeight] = useState("15.7");
-  const [columns, setColumns] = useState("2");
-  const [rows, setRows] = useState("2");
+  const [focalOverride, setFocalOverride] = useState<string | null>(null);
+  const [sensorWidthOverride, setSensorWidthOverride] = useState<string | null>(null);
+  const [sensorHeightOverride, setSensorHeightOverride] = useState<string | null>(null);
+  const focal = focalOverride ?? String(savedScope?.focalLength ?? 480);
+  const sensorWidth = sensorWidthOverride ?? String(savedCamera?.sensorWidth ?? 23.5);
+  const sensorHeight = sensorHeightOverride ?? String(savedCamera?.sensorHeight ?? 15.7);
+  const [panelCount, setPanelCount] = useState(4);
   const [overlap, setOverlap] = useState("20");
   const [rotation, setRotation] = useState("0");
   const target = useMemo(() => getCatalogueObject(targetId), [targetId]);
+  const columns = Math.ceil(Math.sqrt(panelCount));
+  const rows = Math.ceil(panelCount / columns);
   const matches = useMemo(
     () => (query.trim() ? searchCatalogue(query, "All", 8) : []),
     [query],
@@ -45,8 +54,8 @@ export default function MosaicScreen() {
       const dimensions = mosaicDimensions(
         panelWidth,
         panelHeight,
-        Number(columns),
-        Number(rows),
+        columns,
+        rows,
         Number(overlap),
       );
       const panels = mosaicPanels({
@@ -54,20 +63,21 @@ export default function MosaicScreen() {
         centerDecDegrees: target.decDegrees,
         panelWidthDegrees: panelWidth,
         panelHeightDegrees: panelHeight,
-        columns: Number(columns),
-        rows: Number(rows),
+        columns,
+        rows,
         overlapPercent: Number(overlap),
         rotationDegrees: Number(rotation) || 0,
       });
-      return { panelWidth, panelHeight, dimensions, panels };
+      return { panelWidth, panelHeight, dimensions, panels: panels.slice(0, panelCount) };
     } catch {
       return null;
     }
   }, [
-    columns,
     focal,
     overlap,
     rotation,
+    columns,
+    panelCount,
     rows,
     sensorHeight,
     sensorWidth,
@@ -91,13 +101,13 @@ export default function MosaicScreen() {
         `${panel.label}: ${formatRa(panel.raHours)}, ${formatDec(panel.decDegrees)}`,
     );
     void Share.share({
-      message: `${target.name} mosaic — ${columns}×${rows}, ${overlap}% overlap\n${lines.join("\n")}`,
+      message: `${target.name} mosaic — ${panelCount} panels, ${overlap}% overlap\n${lines.join("\n")}`,
     });
   };
   return (
     <Screen>
       <Pressable onPress={() => router.back()}>
-        <Text style={styles.back}>‹ Calculate</Text>
+        <Text style={styles.back}>‹ Tools</Text>
       </Pressable>
       <SectionHeader
         title="Mosaic planner"
@@ -149,8 +159,8 @@ export default function MosaicScreen() {
                 <View
                   key={panel.label}
                   style={{
-                    width: `${100 / Number(columns)}%`,
-                    height: `${100 / Number(rows)}%`,
+                    width: `${100 / columns}%`,
+                    height: `${100 / rows}%`,
                     borderWidth: 1.5,
                     borderColor: colors.gold,
                     backgroundColor: "#D8B56A18",
@@ -179,7 +189,7 @@ export default function MosaicScreen() {
         <Input
           label="Focal length (mm)"
           value={focal}
-          onChangeText={setFocal}
+          onChangeText={setFocalOverride}
           keyboardType="decimal-pad"
         />
         <View style={styles.row}>
@@ -187,7 +197,7 @@ export default function MosaicScreen() {
             <Input
               label="Sensor width (mm)"
               value={sensorWidth}
-              onChangeText={setSensorWidth}
+              onChangeText={setSensorWidthOverride}
               keyboardType="decimal-pad"
             />
           </View>
@@ -195,28 +205,16 @@ export default function MosaicScreen() {
             <Input
               label="Sensor height (mm)"
               value={sensorHeight}
-              onChangeText={setSensorHeight}
+              onChangeText={setSensorHeightOverride}
               keyboardType="decimal-pad"
             />
           </View>
         </View>
-        <View style={styles.row}>
-          <View style={styles.half}>
-            <Input
-              label="Columns"
-              value={columns}
-              onChangeText={setColumns}
-              keyboardType="number-pad"
-            />
-          </View>
-          <View style={styles.half}>
-            <Input
-              label="Rows"
-              value={rows}
-              onChangeText={setRows}
-              keyboardType="number-pad"
-            />
-          </View>
+        <Text style={styles.controlLabel}>PANELS</Text>
+        <View style={styles.panelControl}>
+          <Pressable accessibilityLabel="Delete one mosaic panel" onPress={() => setPanelCount((value) => Math.max(1, value - 1))} style={styles.panelButton}><Text style={styles.panelButtonText}>−</Text></Pressable>
+          <View style={styles.panelCount}><Text style={styles.panelCountValue}>{panelCount}</Text><Text style={styles.panelCountMeta}>{columns} × {rows} automatic layout</Text></View>
+          <Pressable accessibilityLabel="Add one mosaic panel" onPress={() => setPanelCount((value) => Math.min(36, value + 1))} style={styles.panelButton}><Text style={styles.panelButtonText}>＋</Text></Pressable>
         </View>
         <View style={styles.row}>
           <View style={styles.half}>
@@ -298,6 +296,13 @@ const styles = createThemedStyles((colors) => ({
   },
   row: { flexDirection: "row", gap: spacing.sm },
   half: { flex: 1 },
+  controlLabel: { color: colors.muted, fontSize: 10, fontWeight: "800", letterSpacing: 1 },
+  panelControl: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  panelButton: { width: 48, height: 48, borderRadius: 24, borderWidth: 1, borderColor: colors.gold, alignItems: "center", justifyContent: "center", backgroundColor: colors.input },
+  panelButtonText: { color: colors.gold, fontSize: 26, fontWeight: "800" },
+  panelCount: { flex: 1, alignItems: "center" },
+  panelCountValue: { color: colors.text, fontSize: 28, fontWeight: "800" },
+  panelCountMeta: { color: colors.muted, fontSize: 11 },
   error: { color: colors.danger, textAlign: "center" },
   coordinate: {
     flexDirection: "row",
