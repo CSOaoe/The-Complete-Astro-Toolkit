@@ -2,7 +2,7 @@
   "expo": {
     "name": "AstroToolkit",
     "slug": "the-complete-astro-toolkit",
-    "version": "1.5.0",
+    "version": "1.5.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "astrotoolkit",
@@ -12,7 +12,7 @@
     },
     "android": {
       "package": "com.csoaoe.astrotoolkit",
-      "versionCode": 7,
+      "versionCode": 8,
       "icon": "./assets/images/icon.png",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",

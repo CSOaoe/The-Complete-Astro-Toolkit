@@ -59,7 +59,8 @@ export async function createOfflineFieldPack({ observer, equipment, horizon, ses
         }), destination, { idempotent: true });
         imageUri = file.uri;
       } catch {
-        imageUri = destination.exists ? destination.uri : null;
+        // A failed Android download can leave a partial file at the destination.
+        imageUri = null;
       }
     }
     targets.push({ id: target.id, name: target.name, catalogue: target.catalogue, raHours: target.raHours, decDegrees: target.decDegrees, imageUri });
@@ -80,9 +81,9 @@ export async function loadOfflineFieldPack() {
 }
 
 export async function deleteOfflineFieldPack() {
-  await AsyncStorage.removeItem(KEY);
   if (Platform.OS !== "web") {
     const directory = new Directory(Paths.document, DIRECTORY);
     if (directory.exists) directory.delete();
   }
+  await AsyncStorage.removeItem(KEY);
 }

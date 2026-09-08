@@ -1,6 +1,7 @@
 import { Href, useRouter } from "expo-router";
+import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
-import { Card, Header, Screen, SectionHeader, uiStyles } from "@/components/ui";
+import { Button, Card, EmptyState, Header, Input, Screen, SectionHeader, uiStyles } from "@/components/ui";
 import { createThemedStyles } from "@/theme";
 
 const toolRoutes: { title: string; subtitle: string; icon: string; href: Href }[] = [
@@ -33,12 +34,22 @@ const toolRoutes: { title: string; subtitle: string; icon: string; href: Href }[
 
 export default function ToolsScreen() {
   const router = useRouter();
+  const [query, setQuery] = useState("");
+  const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const visibleTools = toolRoutes.filter((tool) => {
+    const text = `${tool.title} ${tool.subtitle}`.toLowerCase();
+    return terms.every((term) => text.includes(term));
+  });
   return (
     <Screen>
       <Header eyebrow="Capture and processing" title="Tools" />
+      <Input label="Find a tool" value={query} onChangeText={setQuery} placeholder="Search framing, focus, weather…" autoCapitalize="none" autoCorrect={false} returnKeyType="search" clearButtonMode="while-editing" />
+      <Text style={uiStyles.muted} accessibilityLiveRegion="polite">{visibleTools.length} of {toolRoutes.length} tools · A–Z</Text>
+      {query ? <Button title="Clear search" variant="secondary" onPress={() => setQuery("")} /> : null}
       <SectionHeader title="Astrophotography toolkit" subtitle="Planning, capture, analysis and post-processing assistants" />
-      {toolRoutes.map((tool) => (
-        <Pressable key={tool.title} onPress={() => router.push(tool.href)}>
+      {!visibleTools.length ? <EmptyState title="No matching tools" message="Try a shorter search or clear it to browse every tool." /> : null}
+      {visibleTools.map((tool) => (
+        <Pressable key={tool.title} accessibilityRole="button" accessibilityLabel={`${tool.title}. ${tool.subtitle}`} onPress={() => router.push(tool.href)} style={({ pressed }) => pressed && { opacity: 0.7 }}>
           <Card style={styles.tool}>
             <Text style={styles.toolIcon}>{tool.icon}</Text>
             <View style={styles.body}>

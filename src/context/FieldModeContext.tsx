@@ -3,7 +3,7 @@ import * as Brightness from "expo-brightness";
 import * as Haptics from "expo-haptics";
 import { activateKeepAwakeAsync, deactivateKeepAwake } from "expo-keep-awake";
 import React, { createContext, PropsWithChildren, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { Platform, Pressable, Text } from "react-native";
+import { Alert, Platform, Pressable, Text } from "react-native";
 import { createThemedStyles, ThemeMode, useTheme } from "@/theme";
 
 const KEY = "@astrotoolkit/field-mode";
@@ -26,23 +26,28 @@ const FieldModeContext = createContext<FieldModeValue | null>(null);
 export function FieldModeProvider({ children }: PropsWithChildren) {
   const { mode, setMode } = useTheme();
   const [active, setActive] = useState(false);
-  const [ready, setReady] = useState(true);
+  const [ready, setReady] = useState(false);
+  const toggling = useRef(false);
   const previousTheme = useRef<ThemeMode>("dark");
   const previousBrightness = useRef<number | null>(null);
 
   useEffect(() => {
-    AsyncStorage.getItem(KEY)
+    let mounted = true;
+    void AsyncStorage.getItem(KEY)
       .then(async (stored) => {
-        if (!stored) return;
+        if (!stored || !mounted) return;
         const saved = JSON.parse(stored) as SavedFieldMode;
-        previousTheme.current = saved.previousTheme;
-        previousBrightness.current = saved.previousBrightness;
-        if (saved.active) {
+        if (!saved || typeof saved !== "object") return;
+        previousTheme.current = ["light", "dark", "red"].includes(saved.previousTheme) ? saved.previousTheme : "dark";
+        previousBrightness.current = typeof saved.previousBrightness === "number" && Number.isFinite(saved.previousBrightness) && saved.previousBrightness >= 0 && saved.previousBrightness <= 1 ? saved.previousBrightness : null;
+        if (saved.active === true) {
           setActive(true);
           await setMode("red");
         }
       })
-      .finally(() => setReady(true));
+      .catch(() => undefined)
+      .finally(() => { if (mounted) setReady(true); });
+    return () => { mounted = false; };
   }, [setMode]);
 
   useEffect(() => {
@@ -58,34 +63,42 @@ export function FieldModeProvider({ children }: PropsWithChildren) {
   }, [active, ready]);
 
   const toggle = useCallback(async () => {
-    if (!active) {
-      previousTheme.current = mode === "red" ? "dark" : mode;
-      if (Platform.OS !== "web") {
-        previousBrightness.current = await Brightness.getBrightnessAsync().catch(() => null);
+    if (!ready || toggling.current) return;
+    toggling.current = true;
+    try {
+      if (!active) {
+        previousTheme.current = mode;
+        if (Platform.OS !== "web") {
+          previousBrightness.current = await Brightness.getBrightnessAsync().catch(() => null);
+        }
+        setActive(true);
+        await setMode("red").catch(() => undefined);
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
+        await AsyncStorage.setItem(KEY, JSON.stringify({
+          active: true,
+          previousTheme: previousTheme.current,
+          previousBrightness: previousBrightness.current,
+        } satisfies SavedFieldMode));
+        return;
       }
-      setActive(true);
-      await setMode("red");
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
+      setActive(false);
+      await setMode(previousTheme.current).catch(() => undefined);
+      if (Platform.OS !== "web" && previousBrightness.current !== null) {
+        await Brightness.setBrightnessAsync(previousBrightness.current).catch(() => undefined);
+      }
+      if (Platform.OS !== "web") await deactivateKeepAwake(WAKE_TAG).catch(() => undefined);
+      await Haptics.selectionAsync().catch(() => undefined);
       await AsyncStorage.setItem(KEY, JSON.stringify({
-        active: true,
+        active: false,
         previousTheme: previousTheme.current,
         previousBrightness: previousBrightness.current,
       } satisfies SavedFieldMode));
-      return;
+    } catch {
+      Alert.alert("Field Mode settings", "Your screen setting changed, but it could not be saved for the next launch. Please try again.");
+    } finally {
+      toggling.current = false;
     }
-    setActive(false);
-    await setMode(previousTheme.current);
-    if (Platform.OS !== "web" && previousBrightness.current !== null) {
-      await Brightness.setBrightnessAsync(previousBrightness.current).catch(() => undefined);
-    }
-    if (Platform.OS !== "web") await deactivateKeepAwake(WAKE_TAG).catch(() => undefined);
-    await Haptics.selectionAsync().catch(() => undefined);
-    await AsyncStorage.setItem(KEY, JSON.stringify({
-      active: false,
-      previousTheme: previousTheme.current,
-      previousBrightness: previousBrightness.current,
-    } satisfies SavedFieldMode));
-  }, [active, mode, setMode]);
+  }, [active, mode, ready, setMode]);
 
   const value = useMemo(() => ({ active, ready, toggle }), [active, ready, toggle]);
   return <FieldModeContext.Provider value={value}>{children}</FieldModeContext.Provider>;
