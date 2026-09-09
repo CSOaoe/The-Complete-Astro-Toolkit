@@ -44,6 +44,8 @@ interface AppDataValue {
   horizon: HorizonProfile;
   calibrationFrames: CalibrationFrameSet[];
   loading: boolean;
+  reloadData(): void;
+  saveSessions(sessions: ImagingSession[]): Promise<void>;
   error: string | null;
   saveProject(project: JournalProject): Promise<void>;
   deleteProject(id: string): Promise<void>;
@@ -79,6 +81,8 @@ export function AppDataProvider({ children }: PropsWithChildren) {
   const [horizon, setHorizon] = useState<HorizonProfile>(flatHorizon);
   const [calibrationFrames, setCalibrationFrames] = useState<CalibrationFrameSet[]>([]);
   const [loading, setLoading] = useState(true);
+  const [revision, setRevision] = useState(0);
+  const reloadData = useCallback(() => setRevision((v) => v + 1), []);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -119,7 +123,7 @@ export function AppDataProvider({ children }: PropsWithChildren) {
         ),
       )
       .finally(() => setLoading(false));
-  }, []);
+  }, [revision]);
 
   const persist = useCallback(
     async <T,>(key: string, value: T, update: (next: T) => void) => {
@@ -191,6 +195,12 @@ export function AppDataProvider({ children }: PropsWithChildren) {
       ),
     [persist, sessions],
   );
+  const saveSessions = useCallback(async (batch: ImagingSession[]) => {
+    const ids = new Set(batch.map((s) => s.id));
+    const next = [...batch, ...sessions.filter((s) => !ids.has(s.id))];
+    await AsyncStorage.setItem(KEYS.sessions, JSON.stringify(next));
+    setSessions(next);
+  }, [sessions]);
   const saveHorizon = useCallback(async (profile: HorizonProfile) => persist(KEYS.horizon, profile, setHorizon), [persist]);
   const saveCalibrationFrameSet = useCallback(async (set: CalibrationFrameSet) => {
     const next = calibrationFrames.some((item) => item.id === set.id) ? calibrationFrames.map((item) => item.id === set.id ? set : item) : [set, ...calibrationFrames];
@@ -223,6 +233,8 @@ export function AppDataProvider({ children }: PropsWithChildren) {
         horizon,
         calibrationFrames,
         loading,
+        reloadData,
+        saveSessions,
         error,
         saveProject,
         deleteProject,

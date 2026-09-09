@@ -16,6 +16,7 @@ import { moonPhase } from "@/utils/astronomy";
 import { fetchAstroWeather, WeatherHour } from "@/services/weather";
 import { smartNightSchedule, smartTargetsTonight } from "@/utils/smartPlanning";
 import { createThemedStyles, radius, spacing } from "@/theme";
+import { forecastFreshness } from "@/utils/forecast";
 
 function coordinate(value: number, positive: string, negative: string) {
   return `${Math.abs(value).toFixed(2)}°${value >= 0 ? positive : negative}`;
@@ -35,7 +36,7 @@ export default function TonightScreen() {
       .then((value) => {
         if (active) {
           setWeather(value);
-          setWeatherStatus("Live forecast included");
+          setWeatherStatus(forecastFreshness(value[0]));
         }
       })
       .catch(() => {

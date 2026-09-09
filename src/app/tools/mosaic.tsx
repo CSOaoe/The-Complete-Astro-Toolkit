@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { Image } from "expo-image";
 import { Pressable, Share, StyleSheet, Text, View } from "react-native";
 import {
@@ -24,22 +24,24 @@ import { useAppData } from "@/context/AppDataContext";
 
 export default function MosaicScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{targetId?:string;ra?:string;dec?:string;rotation?:string;focal?:string;sensorWidth?:string;sensorHeight?:string}>();
   const { equipment } = useAppData();
   const rig = equipment.rigs[0];
   const savedScope = equipment.telescopes.find((item) => item.id === rig?.telescopeId) ?? equipment.telescopes[0];
   const savedCamera = equipment.cameras.find((item) => item.id === rig?.cameraId) ?? equipment.cameras[0];
-  const [targetId, setTargetId] = useState("ic1805");
+  const [targetId, setTargetId] = useState(params.targetId ?? "ic1805");
+  const [customCenter, setCustomCenter] = useState(params.ra !== undefined && params.dec !== undefined && Number.isFinite(+params.ra) && Number.isFinite(+params.dec) ? { raHours:+params.ra, decDegrees:+params.dec } : null);
   const [query, setQuery] = useState("");
-  const [focalOverride, setFocalOverride] = useState<string | null>(null);
-  const [sensorWidthOverride, setSensorWidthOverride] = useState<string | null>(null);
-  const [sensorHeightOverride, setSensorHeightOverride] = useState<string | null>(null);
+  const [focalOverride, setFocalOverride] = useState<string | null>(params.focal ?? null);
+  const [sensorWidthOverride, setSensorWidthOverride] = useState<string | null>(params.sensorWidth ?? null);
+  const [sensorHeightOverride, setSensorHeightOverride] = useState<string | null>(params.sensorHeight ?? null);
   const focal = focalOverride ?? String(savedScope?.focalLength ?? 480);
   const sensorWidth = sensorWidthOverride ?? String(savedCamera?.sensorWidth ?? 23.5);
   const sensorHeight = sensorHeightOverride ?? String(savedCamera?.sensorHeight ?? 15.7);
   const [panelCount, setPanelCount] = useState(4);
   const [overlap, setOverlap] = useState("20");
-  const [rotation, setRotation] = useState("0");
-  const target = useMemo(() => getCatalogueObject(targetId), [targetId]);
+  const [rotation, setRotation] = useState(params.rotation ?? "0");
+  const target = useMemo(() => { const t = getCatalogueObject(targetId); return t && customCenter ? {...t,...customCenter} : t; }, [targetId,customCenter]);
   const columns = Math.ceil(Math.sqrt(panelCount));
   const rows = Math.ceil(panelCount / columns);
   const matches = useMemo(
@@ -125,6 +127,7 @@ export default function MosaicScreen() {
           style={styles.match}
           onPress={() => {
             setTargetId(item.id);
+            setCustomCenter(null);
             setQuery("");
           }}
         >

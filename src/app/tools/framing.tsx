@@ -1,193 +1,395 @@
 import { useMemo, useState } from "react";
-import { useRouter } from "expo-router";
-import { Image } from "expo-image";
-import { Animated, PanResponder, Pressable, Text, useWindowDimensions, View } from "react-native";
-import { Card, Input, Screen, SectionHeader, uiStyles } from "@/components/ui";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
+import { Text, View, useWindowDimensions } from "react-native";
+import {
+  Button,
+  Card,
+  CollapsibleCard,
+  Input,
+  Screen,
+  SectionHeader,
+  Workspace,
+  uiStyles,
+} from "@/components/ui";
+import { FramingCanvas } from "@/components/FramingCanvas";
 import { useAppData } from "@/context/AppDataContext";
-import { formatDec, formatRa, getCatalogueObject, searchCatalogue } from "@/data/catalogue";
+import { getCatalogueObject, searchCatalogue } from "@/data/catalogue";
 import { fieldOfView, pixelScale } from "@/utils/calculations";
-import { clampPanOffset, coordinateForPan, PanOffset, SkyCoordinate } from "@/utils/framingPan";
-import { surveyImageUrl } from "@/utils/surveyImages";
-import { createThemedStyles, radius, spacing } from "@/theme";
-
-const SURVEY_OVERSCAN = 2.2;
+import { Composition, validComposition } from "@/utils/compositions";
+import { useSavedList } from "@/hooks/useSavedList";
 
 export default function FramingScreen() {
   const router = useRouter();
-  const { width: viewportWidth } = useWindowDimensions();
+  const params = useLocalSearchParams<{
+    targetId?: string;
+    ra?: string;
+    dec?: string;
+    rotation?: string;
+    rigId?: string;
+    focal?: string;
+    sensorWidth?: string;
+    sensorHeight?: string;
+  }>();
   const { equipment } = useAppData();
-  const [targetId, setTargetId] = useState("m31");
-  const [query, setQuery] = useState("");
-  const [selectedRigId, setSelectedRigId] = useState("");
-  const selectedRig = equipment.rigs.find((rig) => rig.id === selectedRigId) ?? equipment.rigs[0];
-  const savedScope = equipment.telescopes.find((scope) => scope.id === selectedRig?.telescopeId) ?? equipment.telescopes[0];
-  const savedCamera = equipment.cameras.find((camera) => camera.id === selectedRig?.cameraId) ?? equipment.cameras[0];
-  const [focalOverride, setFocalOverride] = useState<string | null>(null);
-  const [widthOverride, setWidthOverride] = useState<string | null>(null);
-  const [heightOverride, setHeightOverride] = useState<string | null>(null);
-  const [pixelOverride, setPixelOverride] = useState<string | null>(null);
-  const [resolutionWidthOverride, setResolutionWidthOverride] = useState<string | null>(null);
-  const [resolutionHeightOverride, setResolutionHeightOverride] = useState<string | null>(null);
-  const focal = focalOverride ?? String(savedScope?.focalLength ?? 480);
-  const width = widthOverride ?? String(savedCamera?.sensorWidth ?? 23.5);
-  const height = heightOverride ?? String(savedCamera?.sensorHeight ?? 15.7);
-  const pixel = pixelOverride ?? String(savedCamera?.pixelSize ?? 3.76);
-  const resolutionWidth = resolutionWidthOverride ?? String(savedCamera?.resolutionWidth ?? 6248);
-  const resolutionHeight = resolutionHeightOverride ?? String(savedCamera?.resolutionHeight ?? 4176);
-  const [rotation, setRotation] = useState("0");
-  const target = useMemo(() => getCatalogueObject(targetId), [targetId]);
-  const [imageOrigin, setImageOrigin] = useState<SkyCoordinate>({ ra: target?.raHours ?? 0, dec: target?.decDegrees ?? 0 });
-  const [liveCenter, setLiveCenter] = useState(imageOrigin);
-  const [drag] = useState(() => new Animated.ValueXY());
-  const [panOffset, setPanOffset] = useState<PanOffset>({ x: 0, y: 0 });
-  const matches = useMemo(() => (query.trim() ? searchCatalogue(query, "All", 8) : []), [query]);
-  const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null);
-
-  const result = useMemo(() => {
-    try {
-      return {
-        h: fieldOfView(Number(width), Number(focal)),
-        v: fieldOfView(Number(height), Number(focal)),
-        scale: pixelScale(Number(pixel), Number(focal)),
-      };
-    } catch {
-      return null;
-    }
-  }, [focal, height, pixel, width]);
-  const frameWidth = Math.max(260, Math.min(620, viewportWidth - 70));
-  const frameHeight = result ? Math.max(150, Math.min(460, (frameWidth * result.v) / result.h)) : 210;
-  const rotationDegrees = Number(rotation) || 0;
-  const coordinateAtOffset = (offset: PanOffset) => result
-    ? coordinateForPan(imageOrigin, offset, result.h, result.v, frameWidth, frameHeight)
-    : imageOrigin;
-  const offsetForGesture = (dx: number, dy: number) => clampPanOffset({
-    x: panOffset.x + dx,
-    y: panOffset.y + dy,
-  }, frameWidth, frameHeight, SURVEY_OVERSCAN);
-  const panResponder = PanResponder.create({
-    onStartShouldSetPanResponder: () => Boolean(result),
-    onMoveShouldSetPanResponder: (_, gesture) => Boolean(result && Math.abs(gesture.dx) + Math.abs(gesture.dy) > 3),
-    onPanResponderMove: (_, gesture) => {
-      const next = offsetForGesture(gesture.dx, gesture.dy);
-      drag.setValue(next);
-      setLiveCenter(coordinateAtOffset(next));
-    },
-    onPanResponderRelease: (_, gesture) => {
-      const next = offsetForGesture(gesture.dx, gesture.dy);
-      setPanOffset(next);
-      drag.setValue(next);
-      setLiveCenter(coordinateAtOffset(next));
-    },
-    onPanResponderTerminate: (_, gesture) => {
-      const next = offsetForGesture(gesture.dx, gesture.dy);
-      setPanOffset(next);
-      drag.setValue(next);
-      setLiveCenter(coordinateAtOffset(next));
-    },
+  const { width } = useWindowDimensions();
+  const library = useSavedList<Composition>("@astrotoolkit/compositions");
+  const [history, setHistory] = useState<Composition[]>(() => {
+    const rig =
+      equipment.rigs.find((r) => r.id === params.rigId) ?? equipment.rigs[0];
+    const scope =
+      equipment.telescopes.find((s) => s.id === rig?.telescopeId) ??
+      equipment.telescopes[0];
+    const camera =
+      equipment.cameras.find((c) => c.id === rig?.cameraId) ??
+      equipment.cameras[0];
+    const target = getCatalogueObject(params.targetId ?? "m31");
+    const c: Composition = {
+      id: "draft",
+      name: target?.name ?? "Composition",
+      targetId: target?.id ?? "m31",
+      rigId: rig?.id ?? "",
+      createdAt: new Date().toISOString(),
+      ra: params.ra !== undefined ? +params.ra : (target?.raHours ?? 0),
+      dec: params.dec !== undefined ? +params.dec : (target?.decDegrees ?? 0),
+      rotation: Number(params.rotation) || 0,
+      focal: Number(params.focal) || scope?.focalLength || 480,
+      sensorWidth: Number(params.sensorWidth) || camera?.sensorWidth || 23.5,
+      sensorHeight: Number(params.sensorHeight) || camera?.sensorHeight || 15.7,
+      pixelSize: camera?.pixelSize || 3.76,
+    };
+    const fallback = {
+      ...c,
+      ra: target?.raHours ?? 0,
+      dec: target?.decDegrees ?? 0,
+      focal: 480,
+      sensorWidth: 23.5,
+      sensorHeight: 15.7,
+      pixelSize: 3.76,
+      rotation: 0,
+    };
+    return [validComposition(c) ? c : fallback];
   });
-
-  const selectTarget = (id: string, next: SkyCoordinate) => {
-    setTargetId(id);
-    setImageOrigin(next);
-    setPanOffset({ x: 0, y: 0 });
-    drag.setValue({ x: 0, y: 0 });
-    setLiveCenter(next);
-    setQuery("");
+  const [index, setIndex] = useState(0),
+    [revision, setRevision] = useState(0);
+  const frame = history[index];
+  const [query, setQuery] = useState(""),
+    [status, setStatus] = useState(""),
+    [overlay, setOverlay] = useState<string>(),
+    [opacity, setOpacity] = useState(0.4);
+  const matches = useMemo(
+    () => (query.trim() ? searchCatalogue(query, "All", 8) : []),
+    [query],
+  );
+  const commit = (next: Composition, rebase = true) => {
+    if (!validComposition(next)) {
+      setStatus(
+        "Use positive optical values, RA 0–24h and Dec −89.9 to 89.9°.",
+      );
+      return;
+    }
+    const past = history.slice(0, index + 1).slice(-49);
+    setHistory([...past, next]);
+    setIndex(past.length);
+    if (rebase) setRevision((v) => v + 1);
   };
-  const imageUrl = target && result ? surveyImageUrl({
-    raHours: imageOrigin.ra,
-    decDegrees: imageOrigin.dec,
-    fovDegrees: Math.max(result.h, result.v) * SURVEY_OVERSCAN,
-    width: 1400,
-    height: Math.max(700, Math.round((1400 * result.v) / result.h)),
-    rotationDegrees,
-  }) : null;
-  const imageFailed = imageUrl !== null && failedImageUrl === imageUrl;
-
+  const hf = fieldOfView(frame.sensorWidth, frame.focal),
+    vf = fieldOfView(frame.sensorHeight, frame.focal);
+  const canvasWidth = Math.max(
+    200,
+    Math.min(
+      680,
+      width >= 900 ? (Math.min(width, 1400) - 110) * 0.574 : width - 82,
+    ),
+  );
+  const controls = (
+    <>
+      <CollapsibleCard title="Composition">
+        <Input
+          label="Composition name"
+          value={frame.name}
+          onChangeText={(name) => commit({ ...frame, name }, false)}
+        />
+        {equipment.rigs.map((r) => (
+          <Button
+            key={r.id}
+            title={`${frame.rigId === r.id ? "✓ " : ""}${r.name}`}
+            variant="secondary"
+            onPress={() => {
+              const s = equipment.telescopes.find(
+                  (v) => v.id === r.telescopeId,
+                ),
+                c = equipment.cameras.find((v) => v.id === r.cameraId);
+              if (s && c)
+                commit({
+                  ...frame,
+                  rigId: r.id,
+                  focal: s.focalLength,
+                  sensorWidth: c.sensorWidth,
+                  sensorHeight: c.sensorHeight,
+                  pixelSize: c.pixelSize,
+                });
+              else setStatus("This rig needs a saved telescope and camera.");
+            }}
+          />
+        ))}
+        {(
+          [
+            ["focal", "Focal length (mm)"],
+            ["sensorWidth", "Sensor width (mm)"],
+            ["sensorHeight", "Sensor height (mm)"],
+            ["pixelSize", "Pixel size (µm)"],
+            ["rotation", "Rotation (°)"],
+            ["ra", "Centre RA (hours)"],
+            ["dec", "Centre Dec (degrees)"],
+          ] as const
+        ).map(([key, label]) => (
+          <NumericSetting
+            key={`${revision}-${key}-${frame[key]}`}
+            label={label}
+            value={frame[key]}
+            save={(value) => commit({ ...frame, [key]: value })}
+          />
+        ))}
+        <Text style={uiStyles.body}>
+          {hf.toFixed(3)}° × {vf.toFixed(3)}° ·{" "}
+          {pixelScale(frame.pixelSize, frame.focal).toFixed(2)}″/pixel
+        </Text>
+      </CollapsibleCard>
+      <CollapsibleCard title="Previous-image reference">
+        <Button
+          title="Choose your previous image"
+          variant="secondary"
+          onPress={() => {
+            void ImagePicker.launchImageLibraryAsync({
+              mediaTypes: ["images"],
+              quality: 0.8,
+            })
+              .then((result) => {
+                if (!result.canceled) setOverlay(result.assets[0].uri);
+              })
+              .catch(() => setStatus("Could not open image picker."));
+          }}
+        />
+        <Text style={uiStyles.muted}>
+          Manual reference overlay fitted to the camera frame. Use an image from
+          the same framing; it is not automatically plate-registered.
+        </Text>
+        {overlay ? (
+          <>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+              {[0.2, 0.4, 0.6, 0.8].map((n) => (
+                <Button
+                  key={n}
+                  title={`${Math.round(n * 100)}%`}
+                  variant="secondary"
+                  onPress={() => setOpacity(n)}
+                />
+              ))}
+            </View>
+            <Button
+              title="Remove overlay"
+              variant="secondary"
+              onPress={() => setOverlay(undefined)}
+            />
+          </>
+        ) : null}
+      </CollapsibleCard>
+      <Button
+        title="Save composition"
+        disabled={!library.ready}
+        onPress={() =>
+          void library
+            .update((old) =>
+              [
+                {
+                  ...frame,
+                  id: `composition-${Date.now()}`,
+                  createdAt: new Date().toISOString(),
+                },
+                ...old,
+              ].slice(0, 200),
+            )
+            .then(() => setStatus("Composition saved."))
+            .catch(() => setStatus("Could not save composition."))
+        }
+      />
+      <Button
+        title="Use this framing in Mosaic planner"
+        onPress={() =>
+          router.push({
+            pathname: "/tools/mosaic",
+            params: {
+              targetId: frame.targetId,
+              ra: String(frame.ra),
+              dec: String(frame.dec),
+              rotation: String(frame.rotation),
+              focal: String(frame.focal),
+              sensorWidth: String(frame.sensorWidth),
+              sensorHeight: String(frame.sensorHeight),
+            },
+          })
+        }
+      />
+      <Button
+        title="Point mount at this frame"
+        variant="secondary"
+        onPress={() =>
+          router.push({
+            pathname: "/observatory" as never,
+            params: { ra: String(frame.ra), dec: String(frame.dec) },
+          })
+        }
+      />
+      <Button
+        title="Plan an imaging session"
+        variant="secondary"
+        onPress={() =>
+          router.push({
+            pathname: "/planner",
+            params: {
+              targetName: frame.name,
+              targetId: frame.targetId,
+              rigName: equipment.rigs.find((r) => r.id === frame.rigId)?.name,
+              notes: `Framing RA ${frame.ra.toFixed(6)}h Dec ${frame.dec.toFixed(6)}° rotation ${frame.rotation.toFixed(1)}°; ${hf.toFixed(3)} x ${vf.toFixed(3)} degrees`,
+            },
+          })
+        }
+      />
+    </>
+  );
   return (
     <Screen>
-      <Pressable onPress={() => router.back()}><Text style={styles.back}>‹ Tools</Text></Pressable>
-      <SectionHeader title="Visual framing planner" subtitle="Saved-rig FOV, pixel scale and drag-to-compose sky preview" />
-      <Input label="Find any catalogue target or comet" value={query} onChangeText={setQuery} placeholder="Try M31, NGC 7000 or Halley" autoCapitalize="none" />
-      {matches.length ? <View style={styles.matches}>{matches.map((item) => (
-        <Pressable key={item.id} onPress={() => selectTarget(item.id, { ra: item.raHours, dec: item.decDegrees })} style={styles.match}>
-          <Text style={styles.matchTitle}>{item.name}</Text>
-          <Text style={styles.matchMeta}>{item.catalogue} · {item.objectKind === "comet" ? "Comet" : item.type}</Text>
-        </Pressable>
-      ))}</View> : null}
-      <View style={styles.coordinates}>
-        <Card style={styles.coordinateCard}><Text style={styles.coordinateLabel}>RIGHT ASCENSION</Text><Text style={styles.coordinateValue}>{formatRa(liveCenter.ra)}</Text></Card>
-        <Card style={styles.coordinateCard}><Text style={styles.coordinateLabel}>DECLINATION</Text><Text style={styles.coordinateValue}>{formatDec(liveCenter.dec)}</Text></Card>
-      </View>
-      <Card style={styles.preview}>
-        <Text style={styles.previewLabel}>{target?.name ?? "Target unavailable"}</Text>
-        <View style={[styles.frame, { width: frameWidth, height: frameHeight }]} {...panResponder.panHandlers}>
-          {imageUrl && !imageFailed ? (
-            <Animated.View style={[styles.movingImage, {
-              width: frameWidth * SURVEY_OVERSCAN,
-              height: frameHeight * SURVEY_OVERSCAN,
-              left: -(frameWidth * (SURVEY_OVERSCAN - 1)) / 2,
-              top: -(frameHeight * (SURVEY_OVERSCAN - 1)) / 2,
-              transform: drag.getTranslateTransform(),
-            }]}>
-              <Image source={imageUrl} style={styles.frameImage} contentFit="cover" transition={180} cachePolicy="memory-disk" accessibilityLabel={`Interactive sky survey framing preview for ${target?.name ?? "target"}`} onError={() => setFailedImageUrl(imageUrl)} />
-            </Animated.View>
-          ) : <View style={styles.imageFallback}><Text style={styles.imageFallbackIcon}>✦</Text><Text style={styles.imageFallbackText}>{imageFailed ? "Survey image unavailable" : "Enter valid dimensions"}</Text></View>}
-          <View pointerEvents="none" style={styles.crossH} /><View pointerEvents="none" style={styles.crossV} /><View pointerEvents="none" style={styles.reticle} />
-          {target?.objectKind === "comet" ? <View pointerEvents="none" style={styles.cometMarker}><Text style={styles.cometMarkerText}>☄</Text></View> : null}
-        </View>
-        <Text style={styles.dragHint}>Drag the sky smoothly to recentre; RA and Dec update as you move.</Text>
-        {result ? <Text style={uiStyles.muted}>{result.h.toFixed(2)}° × {result.v.toFixed(2)}° field · {rotationDegrees.toFixed(0)}° rotation</Text> : <Text style={styles.error}>Enter valid positive optical dimensions.</Text>}
-      </Card>
-      {equipment.rigs.length ? <Card><Text style={styles.sectionLabel}>SAVED IMAGING RIG</Text><View style={styles.rigs}>{equipment.rigs.map((rig) => <Pressable key={rig.id} onPress={() => { setSelectedRigId(rig.id); setFocalOverride(null); setWidthOverride(null); setHeightOverride(null); setPixelOverride(null); setResolutionWidthOverride(null); setResolutionHeightOverride(null); }} style={[styles.rig, rig.id === selectedRig?.id && styles.rigActive]}><Text style={[styles.rigText, rig.id === selectedRig?.id && styles.rigTextActive]}>{rig.name}</Text></Pressable>)}</View></Card> : null}
-      <Card>
-        <Input label="Telescope focal length (mm)" value={focal} onChangeText={setFocalOverride} keyboardType="decimal-pad" />
-        <View style={styles.row}><View style={styles.half}><Input label="Sensor width (mm)" value={width} onChangeText={setWidthOverride} keyboardType="decimal-pad" /></View><View style={styles.half}><Input label="Sensor height (mm)" value={height} onChangeText={setHeightOverride} keyboardType="decimal-pad" /></View></View>
-        <Input label="Pixel size (microns)" value={pixel} onChangeText={setPixelOverride} keyboardType="decimal-pad" />
-        <View style={styles.row}><View style={styles.half}><Input label="Resolution width (px)" value={resolutionWidth} onChangeText={setResolutionWidthOverride} keyboardType="number-pad" /></View><View style={styles.half}><Input label="Resolution height (px)" value={resolutionHeight} onChangeText={setResolutionHeightOverride} keyboardType="number-pad" /></View></View>
-        <Input label="Camera rotation (degrees)" value={rotation} onChangeText={setRotation} keyboardType="decimal-pad" />
-      </Card>
-      {result ? <View style={styles.results}><Card style={styles.result}><Text style={styles.coordinateLabel}>HORIZONTAL FOV</Text><Text style={styles.resultValue}>{result.h.toFixed(2)}°</Text></Card><Card style={styles.result}><Text style={styles.coordinateLabel}>VERTICAL FOV</Text><Text style={styles.resultValue}>{result.v.toFixed(2)}°</Text></Card><Card style={styles.result}><Text style={styles.coordinateLabel}>PIXEL SCALE</Text><Text style={styles.resultValue}>{result.scale.toFixed(2)}″/px</Text></Card></View> : null}
-      <Text style={styles.surveyCredit}>Archival sky imagery: CDS Aladin DSS2. A moving comet may not appear in the historical background.</Text>
+      <SectionHeader
+        title="Visual framing workspace"
+        subtitle="Saved compositions, gestures and connected imaging plans"
+      />
+      <Input
+        label="Find a target or comet"
+        value={query}
+        onChangeText={setQuery}
+        autoCapitalize="none"
+        placeholder="M 13, Messier 13, SH2-185…"
+      />
+      {matches.map((t) => (
+        <Button
+          key={t.id}
+          title={`${t.name} · ${t.catalogue}`}
+          variant="secondary"
+          onPress={() => {
+            commit({
+              ...frame,
+              targetId: t.id,
+              name: t.name,
+              ra: t.raHours,
+              dec: t.decDegrees,
+            });
+            setQuery("");
+          }}
+        />
+      ))}
+      <Workspace
+        preview={
+          <Card>
+            <Text style={uiStyles.h3}>{frame.name}</Text>
+            <FramingCanvas
+              key={`${revision}-${canvasWidth}-${frame.focal}-${frame.sensorWidth}-${frame.sensorHeight}`}
+              ra={frame.ra}
+              dec={frame.dec}
+              rotation={frame.rotation}
+              horizontalFov={hf}
+              verticalFov={vf}
+              width={canvasWidth}
+              overlay={overlay}
+              opacity={opacity}
+              onChange={(next) => commit({ ...frame, ...next }, false)}
+            />
+            <View style={{ flexDirection: "row", gap: 12 }}>
+              <Button
+                title="Undo"
+                disabled={index === 0}
+                variant="secondary"
+                onPress={() => {
+                  setIndex(index - 1);
+                  setRevision((v) => v + 1);
+                }}
+              />
+              <Button
+                title="Redo"
+                disabled={index === history.length - 1}
+                variant="secondary"
+                onPress={() => {
+                  setIndex(index + 1);
+                  setRevision((v) => v + 1);
+                }}
+              />
+              <Button
+                title="Recentre view"
+                variant="secondary"
+                onPress={() => setRevision((v) => v + 1)}
+              />
+            </View>
+            <Text style={uiStyles.muted}>
+              Archival DSS2 survey, CDS Aladin. Comets are not visible in
+              historical survey images; use Comet tracking for their predicted
+              path.
+            </Text>
+          </Card>
+        }
+        controls={controls}
+      />
+      <Text style={uiStyles.muted} accessibilityLiveRegion="polite">
+        {status}
+      </Text>
+      <CollapsibleCard title="Saved compositions">
+        {library.items.filter(validComposition).map((c) => (
+          <Card key={c.id}>
+            <Text style={uiStyles.h3}>{c.name}</Text>
+            <Text style={uiStyles.muted}>
+              {c.ra.toFixed(4)}h, {c.dec.toFixed(4)}° ·{" "}
+              {new Date(c.createdAt).toLocaleDateString()}
+            </Text>
+            <Button title="Load composition" onPress={() => commit(c)} />
+            <Button
+              title="Delete saved composition"
+              variant="secondary"
+              onPress={() =>
+                void library
+                  .update((old) => old.filter((v) => v.id !== c.id))
+                  .catch(() => setStatus("Could not delete composition."))
+              }
+            />
+          </Card>
+        ))}
+        {!library.items.length ? (
+          <Text style={uiStyles.muted}>
+            Save a frame above to return to it on another night.
+          </Text>
+        ) : null}
+      </CollapsibleCard>
     </Screen>
   );
 }
-
-const styles = createThemedStyles((colors) => ({
-  back: { color: colors.blue, fontWeight: "700" },
-  matches: { gap: spacing.xs },
-  match: { padding: 12, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
-  matchTitle: { color: colors.text, fontWeight: "700" },
-  matchMeta: { color: colors.muted, fontSize: 12, marginTop: 2 },
-  coordinates: { flexDirection: "row", gap: spacing.sm },
-  coordinateCard: { flex: 1, minWidth: 0 },
-  coordinateLabel: { color: colors.muted, fontSize: 9, fontWeight: "800", letterSpacing: 0.8 },
-  coordinateValue: { color: colors.gold, fontSize: 14, fontWeight: "800", marginTop: 5 },
-  preview: { alignItems: "center", overflow: "hidden" },
-  previewLabel: { color: colors.gold, fontWeight: "700" },
-  frame: { backgroundColor: "#07101F", borderColor: colors.text, borderWidth: 2, alignItems: "center", justifyContent: "center", overflow: "hidden" },
-  movingImage: { position: "absolute" },
-  frameImage: { width: "100%", height: "100%" },
-  imageFallback: { flex: 1, alignItems: "center", justifyContent: "center" },
-  imageFallbackIcon: { color: colors.gold, fontSize: 34 },
-  imageFallbackText: { color: colors.muted, fontSize: 12, marginTop: 6 },
-  crossH: { position: "absolute", width: "100%", height: 1, backgroundColor: "#91A0B855" },
-  crossV: { position: "absolute", width: 1, height: "100%", backgroundColor: "#91A0B855" },
-  reticle: { position: "absolute", width: 22, height: 22, borderRadius: 11, borderWidth: 1, borderColor: "#F7F8FCAA" },
-  cometMarker: { position: "absolute", width: 38, height: 38, borderRadius: 19, borderWidth: 1, borderColor: colors.gold, alignItems: "center", justifyContent: "center" },
-  cometMarkerText: { color: colors.gold, fontSize: 16 },
-  dragHint: { color: colors.blue, fontSize: 11, textAlign: "center" },
-  sectionLabel: { color: colors.muted, fontSize: 10, fontWeight: "800", letterSpacing: 1 },
-  rigs: { flexDirection: "row", flexWrap: "wrap", gap: spacing.xs },
-  rig: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.pill, paddingHorizontal: 11, paddingVertical: 8 },
-  rigActive: { borderColor: colors.gold, backgroundColor: colors.input },
-  rigText: { color: colors.muted, fontWeight: "700", fontSize: 12 },
-  rigTextActive: { color: colors.gold },
-  row: { flexDirection: "row", gap: spacing.sm },
-  half: { flex: 1 },
-  results: { gap: spacing.sm },
-  result: { borderLeftWidth: 3, borderLeftColor: colors.gold },
-  resultValue: { color: colors.gold, fontSize: 26, fontWeight: "800" },
-  error: { color: colors.danger },
-  surveyCredit: { color: colors.muted, fontSize: 11, lineHeight: 16, textAlign: "center" },
-}));
+function NumericSetting({
+  label,
+  value,
+  save,
+}: {
+  label: string;
+  value: number;
+  save(v: number): void;
+}) {
+  const [text, setText] = useState(String(value));
+  return (
+    <Input
+      label={label}
+      value={text}
+      onChangeText={setText}
+      onEndEditing={() => {
+        if (text.trim() && Number.isFinite(+text)) save(+text);
+        else setText(String(value));
+      }}
+      keyboardType="numbers-and-punctuation"
+    />
+  );
+}

@@ -1,5 +1,10 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ObserverLocation } from "@/types";
-
+import {
+  AstroResponse,
+  ForecastResponse,
+  parseForecast,
+} from "@/utils/forecast";
 export interface WeatherHour {
   time: string;
   cloud: number;
@@ -11,82 +16,58 @@ export interface WeatherHour {
   seeing: number;
   transparency: number;
   score: number;
+  fetchedAt?: string;
+  seeingSource?: "7Timer model" | "Weather estimate";
+  cached?: boolean;
 }
-interface ForecastResponse {
-  hourly: {
-    time: string[];
-    cloud_cover: number[];
-    relative_humidity_2m: number[];
-    temperature_2m: number[];
-    dew_point_2m: number[];
-    wind_speed_10m: number[];
-    visibility: number[];
-  };
+async function fetchJson<T>(url: string): Promise<T> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 12000);
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    if (!response.ok)
+      throw new Error(`Weather service returned ${response.status}.`);
+    return await response.json();
+  } finally {
+    clearTimeout(timer);
+  }
 }
-interface AstroResponse {
-  dataseries?: { timepoint: number; seeing: number; transparency: number }[];
-}
-
 export async function fetchAstroWeather(
   location: ObserverLocation,
 ): Promise<WeatherHour[]> {
-  const query = `latitude=${location.latitude}&longitude=${location.longitude}&hourly=cloud_cover,relative_humidity_2m,temperature_2m,dew_point_2m,wind_speed_10m,visibility&forecast_days=3&timezone=auto`;
-  const [weatherResponse, astroResponse] = await Promise.all([
-    fetch(`https://api.open-meteo.com/v1/forecast?${query}`),
-    fetch(
-      `https://www.7timer.info/bin/api.pl?lon=${location.longitude}&lat=${location.latitude}&product=astro&output=json`,
-    ).catch(() => null),
-  ]);
-  if (!weatherResponse.ok) throw new Error("Weather service is unavailable.");
-  const weather = (await weatherResponse.json()) as ForecastResponse;
-  let astro: AstroResponse | null = null;
-  if (astroResponse?.ok) {
+  const key = `@astrotoolkit/weather/${location.latitude.toFixed(3)},${location.longitude.toFixed(3)}`;
+  try {
+    const [weather, astro] = await Promise.all([
+      fetchJson<ForecastResponse>(
+        `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&hourly=cloud_cover,relative_humidity_2m,temperature_2m,dew_point_2m,wind_speed_10m,visibility&forecast_days=3&timezone=GMT&timeformat=unixtime`,
+      ),
+      fetchJson<AstroResponse>(
+        `https://www.7timer.info/bin/api.pl?lon=${location.longitude}&lat=${location.latitude}&product=astro&output=json`,
+      ).catch(() => null),
+    ]);
+    const hours = parseForecast(weather, astro);
+    if (!hours.length)
+      throw new Error("No valid forecast hours are available.");
+    await AsyncStorage.setItem(key, JSON.stringify(hours)).catch(
+      () => undefined,
+    );
+    return hours;
+  } catch (error) {
     try {
-      astro = (await astroResponse.json()) as AstroResponse;
+      const stored = JSON.parse((await AsyncStorage.getItem(key)) ?? "null");
+      if (Array.isArray(stored)) {
+        const valid = stored.filter(
+          (h) =>
+            h &&
+            Number.isFinite(h.score) &&
+            Date.parse(h.time) >= Date.now() - 3600000 &&
+            Date.parse(h.fetchedAt) >= Date.now() - 86400000,
+        );
+        if (valid.length) return valid.map((h) => ({ ...h, cached: true }));
+      }
     } catch {
-      astro = null;
+      /* Report the original network failure. */
     }
+    throw error;
   }
-  const now = new Date();
-  const start = weather.hourly.time.findIndex(
-    (value) => new Date(value).getTime() >= now.getTime() - 3_600_000,
-  );
-  return weather.hourly.time
-    .slice(Math.max(0, start), Math.max(0, start) + 24)
-    .map((time, offset) => {
-      const index = Math.max(0, start) + offset;
-      const astroPoint = astro?.dataseries?.[Math.floor(offset / 3)];
-      const cloud = weather.hourly.cloud_cover[index];
-      const humidity = weather.hourly.relative_humidity_2m[index];
-      const wind = weather.hourly.wind_speed_10m[index];
-      const seeing =
-        astroPoint?.seeing ??
-        Math.max(1, Math.min(8, Math.round(8 - wind / 6 - humidity / 35)));
-      const transparency =
-        astroPoint?.transparency ??
-        Math.max(1, Math.min(8, Math.round(8 - cloud / 18 - humidity / 45)));
-      const score = Math.max(
-        0,
-        Math.round(
-          100 -
-            cloud * 0.65 -
-            humidity * 0.15 -
-            wind * 0.5 +
-            seeing * 2 +
-            transparency * 2,
-        ),
-      );
-      return {
-        time,
-        cloud,
-        humidity,
-        temperature: weather.hourly.temperature_2m[index],
-        dewPoint: weather.hourly.dew_point_2m[index],
-        wind,
-        visibility: weather.hourly.visibility[index] / 1000,
-        seeing,
-        transparency,
-        score,
-      };
-    });
 }

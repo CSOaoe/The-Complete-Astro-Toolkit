@@ -2,17 +2,22 @@
   "expo": {
     "name": "AstroToolkit",
     "slug": "the-complete-astro-toolkit",
-    "version": "1.5.1",
-    "orientation": "portrait",
+    "version": "1.6.0",
+    "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "astrotoolkit",
     "userInterfaceStyle": "automatic",
     "ios": {
+      "infoPlist": {
+        "NSLocalNetworkUsageDescription": "Connect to your selected observatory devices on local Wi-Fi.",
+        "NSAppTransportSecurity": { "NSAllowsLocalNetworking": true }
+      },
+      "supportsTablet": true,
       "icon": "./assets/images/icon.png"
     },
     "android": {
       "package": "com.csoaoe.astrotoolkit",
-      "versionCode": 8,
+      "versionCode": 9,
       "icon": "./assets/images/icon.png",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
@@ -54,7 +59,9 @@
           "imageWidth": 76
         }
       ],
-      "expo-image"
+      "expo-image",
+      "expo-sharing",
+      ["expo-build-properties", { "android": { "usesCleartextTraffic": true } }]
     ],
     "experiments": {
       "typedRoutes": true,

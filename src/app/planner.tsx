@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useRouter } from "expo-router";
+import { Href, useLocalSearchParams, useRouter } from "expo-router";
 import { Alert, Pressable, Text, View } from "react-native";
 import {
   Button,
@@ -26,9 +26,10 @@ const initial = {
 };
 export default function PlannerScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{targetName?:string;targetId?:string;rigName?:string;notes?:string}>();
   const { sessions, observer, saveSession, deleteSession } = useAppData();
-  const [form, setForm] = useState(initial);
-  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({...initial, targetName:params.targetName ?? "", rigName:params.rigName ?? "", notes:params.notes ?? ""});
+  const [showForm, setShowForm] = useState(Boolean(params.targetName));
   const [error, setError] = useState("");
   const submit = async () => {
     if (
@@ -42,7 +43,7 @@ export default function PlannerScreen() {
     }
     const session: ImagingSession = {
       id: `session-${Date.now()}`,
-      targetId: "",
+      targetId: form.targetName === params.targetName ? params.targetId ?? "" : "",
       targetName: form.targetName.trim(),
       date: form.date,
       startTime: form.startTime,
@@ -76,6 +77,9 @@ export default function PlannerScreen() {
           ) : undefined
         }
       />
+      {showForm ? (
+        <Button title="Generate a complete night plan" variant="secondary" onPress={() => router.push("/night-plan" as Href)} />
+      ) : <Button title="Plan my night automatically" onPress={() => router.push("/night-plan" as Href)} />}
       {showForm ? (
         <Card>
           <Input

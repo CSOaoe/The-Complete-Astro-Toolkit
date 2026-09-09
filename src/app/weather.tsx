@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "expo-router";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import {
@@ -11,6 +11,7 @@ import {
   uiStyles,
 } from "@/components/ui";
 import { useAppData } from "@/context/AppDataContext";
+import { WeatherConfidence } from "@/components/WeatherConfidence";
 import { fetchAstroWeather, WeatherHour } from "@/services/weather";
 import { colors, createThemedStyles, radius, spacing } from "@/theme";
 
@@ -20,38 +21,35 @@ export default function WeatherScreen() {
   const [hours, setHours] = useState<WeatherHour[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const request = useRef({ generation: 0 });
   const load = useCallback(async () => {
+    const generation = ++request.current.generation;
     setLoading(true);
     setError("");
+    setHours([]);
     try {
-      setHours(await fetchAstroWeather(observer));
+      const forecast = await fetchAstroWeather(observer);
+      if (generation === request.current.generation) setHours(forecast);
     } catch (reason) {
-      setError(
-        reason instanceof Error ? reason.message : "Forecast unavailable.",
-      );
+      if (generation === request.current.generation)
+        setError(
+          reason instanceof Error ? reason.message : "Forecast unavailable.",
+        );
     } finally {
-      setLoading(false);
+      if (generation === request.current.generation) setLoading(false);
     }
-  }, [observer]);
+  }, [observer, request]);
   useEffect(() => {
     let active = true;
-    fetchAstroWeather(observer)
-      .then((forecast) => {
-        if (active) setHours(forecast);
-      })
-      .catch((reason: unknown) => {
-        if (active)
-          setError(
-            reason instanceof Error ? reason.message : "Forecast unavailable.",
-          );
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
+    const state = request.current;
+    void Promise.resolve().then(() => {
+      if (active) void load();
+    });
     return () => {
       active = false;
+      state.generation++;
     };
-  }, [observer]);
+  }, [load, request]);
   const best = hours.reduce<WeatherHour | null>(
     (current, item) =>
       !current || item.score > current.score ? item : current,
@@ -64,13 +62,14 @@ export default function WeatherScreen() {
       </Pressable>
       <SectionHeader
         title="Weather & seeing"
-        subtitle={`24-hour astronomy forecast for ${observer.label}`}
+        subtitle={`48-hour astronomy forecast for ${observer.label} · device local time`}
         action={
           <Pressable onPress={() => void load()}>
             <Text style={styles.refresh}>Refresh</Text>
           </Pressable>
         }
       />
+      <WeatherConfidence hours={hours} />
       {loading ? (
         <LoadingState />
       ) : error ? (

@@ -25,7 +25,7 @@ export interface SmartScheduleBlock extends SmartTargetScore {
 }
 
 function nearestWeather(weather: WeatherHour[], at: Date) {
-  return weather.reduce<WeatherHour | null>((closest, hour) => {
+  return weather.filter((hour) => Math.abs(Date.parse(hour.time) - at.getTime()) <= 3600000 && (!hour.fetchedAt || Date.now() - Date.parse(hour.fetchedAt) <= 10800000)).reduce<WeatherHour | null>((closest, hour) => {
     if (!closest) return hour;
     return Math.abs(new Date(hour.time).getTime() - at.getTime()) < Math.abs(new Date(closest.time).getTime() - at.getTime()) ? hour : closest;
   }, null);

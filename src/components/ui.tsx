@@ -10,6 +10,7 @@ import {
   TextInputProps,
   View,
   ViewStyle,
+  useWindowDimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, createThemedStyles, radius, spacing } from "@/theme";
@@ -33,6 +34,20 @@ export function Screen({
       )}
     </SafeAreaView>
   );
+}
+
+export function Workspace({ preview, controls }: { preview: ReactNode; controls: ReactNode }) {
+  const { width } = useWindowDimensions();
+  const wide = width >= 900;
+  return <View style={{ flexDirection: wide ? "row" : "column", alignItems: "flex-start", gap: spacing.lg }}>
+    <View style={{ flex: wide ? 1.35 : undefined, width: wide ? undefined : "100%", minWidth: 0, gap: spacing.md }}>{preview}</View>
+    <View style={{ flex: wide ? 1 : undefined, width: wide ? undefined : "100%", minWidth: 0, gap: spacing.md }}>{controls}</View>
+  </View>;
+}
+
+export function CollapsibleCard({ title, children }: PropsWithChildren<{ title: string }>) {
+  const [open, setOpen] = React.useState(true);
+  return <Card><Pressable accessibilityRole="button" accessibilityState={{ expanded: open }} onPress={() => setOpen(!open)} style={{ minHeight: 48, justifyContent: "center" }}><Text style={uiStyles.h3}>{open ? "−" : "+"} {title}</Text></Pressable>{open ? children : null}</Card>;
 }
 
 export function Card({
@@ -233,7 +248,7 @@ export const uiStyles = createThemedStyles((colors) => ({
 
 const styles = createThemedStyles((colors) => ({
   safe: { flex: 1, backgroundColor: colors.background },
-  screen: { padding: spacing.lg, paddingBottom: 120, gap: spacing.lg },
+  screen: { padding: spacing.lg, paddingBottom: 120, gap: spacing.lg, width: "100%", maxWidth: 1400, alignSelf: "center" },
   card: {
     backgroundColor: colors.surface,
     borderColor: colors.border,

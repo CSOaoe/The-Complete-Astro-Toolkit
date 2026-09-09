@@ -1,10 +1,15 @@
 import { Href, useRouter } from "expo-router";
 import { useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, Text, View, useWindowDimensions } from "react-native";
 import { Button, Card, EmptyState, Header, Input, Screen, SectionHeader, uiStyles } from "@/components/ui";
 import { createThemedStyles } from "@/theme";
+import { useSavedList } from "@/hooks/useSavedList";
 
 const toolRoutes: { title: string; subtitle: string; icon: string; href: Href }[] = [
+  { title: "Backup & restore", subtitle: "Export, preview and restore your observing data", icon: "↓", href: "/backup" as Href },
+  { title: "Comet tracking", subtitle: "JPL paths, motion and trailing estimates for your rig", icon: "☄", href: "/comet-tracking" as Href },
+  { title: "Observatory connection", subtitle: "Read local Alpaca devices and confirm mount commands", icon: "⌖", href: "/observatory" as Href },
+  { title: "Plan my night", subtitle: "Generate capture blocks from your rig, site and available hours", icon: "☾", href: "/night-plan" as Href },
   { title: "Session Command Centre", subtitle: "Live progress, altitude, field checklist and reminders", icon: "▶", href: "/session-command" as Href },
   { title: "Offline Field Pack", subtitle: "Cache plans, forecast and target imagery before leaving", icon: "↓", href: "/offline-pack" as Href },
   { title: "Power, dew & storage", subtitle: "Battery runtime, condensation risk and image capacity", icon: "⚡", href: "/power-planner" as Href },
@@ -34,6 +39,14 @@ const toolRoutes: { title: string; subtitle: string; icon: string; href: Href }[
 
 export default function ToolsScreen() {
   const router = useRouter();
+  const { width } = useWindowDimensions();
+  const favourites = useSavedList<string>("@astrotoolkit/tool-favourites");
+  const recents = useSavedList<string>("@astrotoolkit/tool-recents");
+  const [storageError, setStorageError] = useState("");
+  const openTool = (tool: (typeof toolRoutes)[number]) => {
+    void recents.update((old) => [tool.title, ...old.filter((t) => t !== tool.title)].slice(0, 6)).catch(() => undefined);
+    router.push(tool.href);
+  };
   const [query, setQuery] = useState("");
   const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
   const visibleTools = toolRoutes.filter((tool) => {
@@ -43,13 +56,18 @@ export default function ToolsScreen() {
   return (
     <Screen>
       <Header eyebrow="Capture and processing" title="Tools" />
+      {!query && favourites.items.length ? <Card><Text style={uiStyles.h3}>Favourite tools</Text>{toolRoutes.filter(t => favourites.items.includes(t.title)).map(t => <Button key={t.title} title={t.title} variant="secondary" onPress={() => openTool(t)} />)}</Card> : null}
+      {!query && recents.items.length ? <Card><Text style={uiStyles.h3}>Recently used</Text>{recents.items.map(title => toolRoutes.find(t => t.title === title)).filter((t): t is (typeof toolRoutes)[number] => Boolean(t)).map(t => <Button key={t.title} title={t.title} variant="secondary" onPress={() => openTool(t)} />)}</Card> : null}
+      {storageError ? <Text style={uiStyles.muted}>{storageError}</Text> : null}
       <Input label="Find a tool" value={query} onChangeText={setQuery} placeholder="Search framing, focus, weather…" autoCapitalize="none" autoCorrect={false} returnKeyType="search" clearButtonMode="while-editing" />
       <Text style={uiStyles.muted} accessibilityLiveRegion="polite">{visibleTools.length} of {toolRoutes.length} tools · A–Z</Text>
       {query ? <Button title="Clear search" variant="secondary" onPress={() => setQuery("")} /> : null}
       <SectionHeader title="Astrophotography toolkit" subtitle="Planning, capture, analysis and post-processing assistants" />
       {!visibleTools.length ? <EmptyState title="No matching tools" message="Try a shorter search or clear it to browse every tool." /> : null}
+      <View style={{ flexDirection:"row", flexWrap:"wrap", gap:12 }}>
       {visibleTools.map((tool) => (
-        <Pressable key={tool.title} accessibilityRole="button" accessibilityLabel={`${tool.title}. ${tool.subtitle}`} onPress={() => router.push(tool.href)} style={({ pressed }) => pressed && { opacity: 0.7 }}>
+        <View key={tool.title} style={{ width:width >= 900 ? "48.5%" : "100%", gap:6 }}>
+        <Pressable accessibilityRole="button" accessibilityLabel={`${tool.title}. ${tool.subtitle}`} onPress={() => openTool(tool)} style={({ pressed }) => pressed && { opacity: 0.7 }}>
           <Card style={styles.tool}>
             <Text style={styles.toolIcon}>{tool.icon}</Text>
             <View style={styles.body}>
@@ -59,7 +77,10 @@ export default function ToolsScreen() {
             <Text style={styles.chevron}>›</Text>
           </Card>
         </Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={`${favourites.items.includes(tool.title)?"Remove from":"Add to"} favourite tools: ${tool.title}`} disabled={!favourites.ready} onPress={()=>void favourites.update(old=>old.includes(tool.title)?old.filter(t=>t!==tool.title):[...old,tool.title]).catch(()=>setStorageError("Could not save favourite tools."))} style={{minHeight:44,justifyContent:"center",alignSelf:"flex-end",paddingHorizontal:12}}><Text style={uiStyles.muted}>{favourites.items.includes(tool.title)?"★ Favourite":"☆ Favourite"}</Text></Pressable>
+        </View>
       ))}
+      </View>
     </Screen>
   );
 }
